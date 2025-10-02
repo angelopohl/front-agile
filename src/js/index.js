@@ -1,5 +1,5 @@
-import { fetchReportes } from './services/apiService.js';
-import { renderLoading, renderError, renderTable, renderPagination } from './views/reportesView.js';
+import { fetchReportes } from './utils/api/apiService.js';
+import { renderLoading, renderError, renderTable, renderPagination } from './components/reportesView.js';
 
 const FILAS_POR_PAGINA = 5;
 let paginaActual = 1;
