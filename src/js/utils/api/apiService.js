@@ -40,3 +40,25 @@ export async function fetchReportes(page, size) {
         throw error; 
     }
 }
+
+export async function fetchTareasAsignadas(page, size) {
+    const token = getToken();
+    if (!token) {
+        throw new Error('No se encontró token de autenticación.');
+    }
+
+    const url = `${API_BASE_URL}/tareas/asignadas?page=${page}&size=${size}&sort=fechaAsignacion,desc`;
+    
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+        
+    if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+    }
+        
+    return response.json();
+}

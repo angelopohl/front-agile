@@ -92,3 +92,28 @@ tbody tr:last-child td {
 .page-number:not(.active):hover {
     background-color: #f2f2f2;
 }
+
+/* ... tu css existente ... */
+
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.button-primary {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 6px;
+    background-color: #5a7a8a;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.button-primary:hover {
+    background-color: #435a66;
+}
