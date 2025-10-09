@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Iniciar Sesión</title>
+    <link rel="stylesheet" href="src/css/main.css" />
+    <link rel="stylesheet" href="src/css/login.css" />
+    <link
+      rel="shortcut icon"
+      href="src/img/favicon.ico"
+      type="image/x-icon"
+    />
+  </head>
+  <body class="login-page">
+    <div class="login-card">
+      <h1>Iniciar Sesión</h1>
+      <div
+        id="login-feedback"
+        class="feedback-message"
+        style="display: none"
+      ></div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="email">Correo Electrónico</label>
+          <input type="email" id="email" name="email" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" name="password" required />
+        </div>
+        <button type="submit" class="btn-primary btn-login">
+          Iniciar Sesión
+        </button>
+      </form>
+    </div>
+
+    <script type="module">
+      // Importar las funciones necesarias
+      // Corrección: Usamos rutas absolutas con '/' al inicio para asegurar la resolución correcta
+      import {
+        login,
+        getUserRole,
+        redirectToDashboard,
+      } from "/src/js/auth.js";
+      import {
+        getById,
+        showFeedback,
+        hideFeedback,
+      } from "/src/utils/dom.js";
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const form = getById("login-form");
+        const feedbackElementId = "login-feedback";
+
+        // Comprobar si ya hay una sesión activa al cargar
+        const role = getUserRole();
+        if (role) {
+          // Si ya está autenticado, redirigir inmediatamente a su dashboard
+          redirectToDashboard(role);
+          return;
+        }
+
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          hideFeedback(feedbackElementId);
+
+          const email = getById("email").value;
+          const password = getById("password").value;
+
+          console.log(email, password);
+
+          // Llamar a la función de login del módulo auth.js
+          const success = await login(email, password);
+
+          if (!success) {
+            showFeedback(
+              feedbackElementId,
+              "Usuario o contraseña incorrectos. Por favor, intente de nuevo.",
+              "error"
+            );
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
+

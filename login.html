@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Iniciar Sesión</title>
-    <link rel="stylesheet" href="assets/css/main.css" />
-    <link rel="stylesheet" href="assets/css/login.css" />
+    <link rel="stylesheet" href="src/css/main.css" />
+    <link rel="stylesheet" href="src/css/login.css" />
     <link
       rel="shortcut icon"
-      href="assets/img/favicon.ico"
+      href="src/img/favicon.ico"
       type="image/x-icon"
     />
   </head>
@@ -43,12 +43,12 @@
         login,
         getUserRole,
         redirectToDashboard,
-      } from "/assets/js/auth.js";
+      } from "/src/js/auth.js";
       import {
         getById,
         showFeedback,
         hideFeedback,
-      } from "/assets/utils/dom.js";
+      } from "/src/utils/dom.js";
 
       document.addEventListener("DOMContentLoaded", () => {
         const form = getById("login-form");
@@ -86,3 +86,4 @@
     </script>
   </body>
 </html>
+
