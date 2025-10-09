@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ciudadano - Historial de Reportes</title>
+    <link rel="stylesheet" href="assets/css/main.css" />
+    <link rel="stylesheet" href="assets/css/dashboard.css" />
+    <link
+      rel="shortcut icon"
+      href="assets/img/favicon.ico"
+      type="image/x-icon"
+    />
+  </head>
+  <body class="dashboard-layout">
+    <header class="header">
+      <h2>Dashboard de Ciudadano</h2>
+      <button id="logout-btn" class="btn-danger">Cerrar Sesión</button>
+    </header>
+
+    <main class="main-content container">
+      <h1>Bienvenido(a) Ciudadano</h1>
+      <div
+        id="dashboard-feedback"
+        class="feedback-message"
+        style="display: none"
+      ></div>
+
+      <button
+        id="create-report-btn"
+        class="btn-primary"
+        style="margin-bottom: 1.5rem"
+      >
+        Crear Nuevo Reporte
+      </button>
+
+      <h3>Mi Historial de Reportes</h3>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Fecha y Hora</th>
+              <th>Tipo de Reporte</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="reports-table-body">
+            <!-- Contenido dinámico cargado por ciudadano.js -->
+            <tr>
+              <td colspan="3" style="text-align: center">
+                Cargando reportes...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination-controls">
+        <button id="prev-page" class="btn-primary">Anterior</button>
+        <span id="page-info">Página 1 de 1</span>
+        <button id="next-page" class="btn-primary">Siguiente</button>
+      </div>
+    </main>
+
+    <!-- MODAL: Crear Nuevo Reporte (Ciudadano) -->
+    <div id="new-report-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Crear Reporte de Incidencia</h3>
+          <button id="close-report-modal" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div
+            id="report-modal-feedback"
+            class="feedback-message"
+            style="display: none"
+          ></div>
+          <form id="report-form">
+            <div class="form-group">
+              <label for="report-type">Tipo de Reporte:</label>
+              <select id="report-type" required>
+                <option value="MALEZA">Maleza</option>
+                <option value="RESIDUOS_SOLIDOS">Residuos Sólidos</option>
+                <option value="BARRIDO">Barrido</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="report-description"
+                >Descripción breve (opcional, máximo 15 palabras):</label
+              >
+              <textarea
+                id="report-description"
+                class="full-width"
+                rows="3"
+                placeholder="Descripción breve"
+              ></textarea>
+            </div>
+            <div class="form-group">
+              <label for="report-location"
+                >Ubicación del problema (obligatorio):</label
+              >
+              <div style="display: flex; gap: 0.5rem; align-items: center">
+                <input
+                  id="report-location"
+                  type="text"
+                  placeholder="Dirección o coordenadas"
+                  required
+                  style="flex: 1"
+                />
+                <button
+                  type="button"
+                  id="detect-location-btn"
+                  class="btn-secondary"
+                >
+                  Detectar ubicación
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="report-photos"
+                >Foto del problema (obligatorio, jpg/png):</label
+              >
+              <input
+                id="report-photos"
+                type="file"
+                accept="image/jpeg,image/png"
+                multiple
+                required
+              />
+              <div class="small-note">
+                Se permite: .jpg, .jpeg, .png — máximo 1 archivo
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button type="submit" class="btn-primary">Enviar Reporte</button>
+              <button
+                type="button"
+                id="cancel-report-btn"
+                class="btn-secondary"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Carga de la lógica específica y core -->
+    <script type="module" src="assets/utils/dom.js"></script>
+    <script type="module" src="assets/js/auth.js"></script>
+    <script type="module" src="assets/js/api.js"></script>
+    <script type="module" src="assets/js/ciudadano.js"></script>
+  </body>
+</html>

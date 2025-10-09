@@ -1,0 +1,162 @@
+/* ----------------------------------------------------------------
+   dashboard.css: Estilos compartidos de Dashboards y Modales
+---------------------------------------------------------------- */
+
+.dashboard-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.header {
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-md);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header h2 {
+    color: var(--color-primary);
+    margin: 0;
+}
+
+.main-content {
+    padding: 2rem;
+    flex-grow: 1;
+}
+
+.full-width {
+  width: 100%;         /* ocupa todo el contenedor */
+  max-width: 800px;    /* límite opcional en píxeles */
+  box-sizing: border-box; /* incluye padding/border en el ancho */
+  min-width: 300px;    /* mínimo opcional */
+  resize: vertical;    /* sólo permitir redimensionar verticalmente */
+}
+
+/* --- Estilos de Tabla y Paginación --- */
+.table-container {
+    overflow-x: auto;
+    margin-top: 1.5rem;
+    background-color: var(--color-surface);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th, .data-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.data-table th {
+    background-color: #e9ecef;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    gap: 1rem;
+}
+
+.pagination-controls button {
+    padding: 0.5rem 1rem;
+    background-color: var(--color-secondary);
+    color: var(--color-surface);
+}
+
+.pagination-controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* --- Estilos de Modal --- */
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: none; /* Inicialmente oculto */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.modal.open {
+    display: flex;
+}
+
+.modal-content {
+    background-color: var(--color-surface);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    position: relative;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--color-primary);
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--color-secondary);
+    transition: color 0.2s;
+    padding: 0;
+    box-shadow: none;
+}
+
+.close-btn:hover {
+    color: var(--color-danger);
+}
+
+.modal-body .form-group {
+    margin-bottom: 1rem;
+}
+
+.modal-actions {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+/* Animación para el modal */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
