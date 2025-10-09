@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trabajador - Tareas Asignadas</title>
+    <link rel="stylesheet" href="assets/css/main.css" />
+    <link rel="stylesheet" href="assets/css/dashboard.css" />
+    <link
+      rel="shortcut icon"
+      href="assets/img/favicon.ico"
+      type="image/x-icon"
+    />
+  </head>
+  <body class="dashboard-layout">
+    <header class="header">
+      <h2>Dashboard de Trabajador</h2>
+      <button id="logout-btn" class="btn-danger">Cerrar Sesión</button>
+    </header>
+
+    <main class="main-content container">
+      <h1>Bienvenido(a) Trabajador</h1>
+      <div
+        id="dashboard-feedback"
+        class="feedback-message"
+        style="display: none"
+      ></div>
+
+      <h3>Mis Tareas Asignadas</h3>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Fecha Asignación</th>
+              <th>Tipo de Tarea</th>
+              <th>Ubicación</th>
+              <th>Foto Referencia</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tasks-table-body">
+            <!-- Contenido dinámico cargado por trabajador.js -->
+            <tr>
+              <td colspan="5" style="text-align: center">
+                Cargando tareas asignadas...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination-controls">
+        <button id="prev-page" class="btn-primary">Anterior</button>
+        <span id="page-info">Página 1 de 1</span>
+        <button id="next-page" class="btn-primary">Siguiente</button>
+      </div>
+    </main>
+
+    <!-- MODAL: Completar Tarea (Trabajador) -->
+    <div id="complete-task-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Completar Tarea #<span id="task-id-display"></span></h3>
+          <button id="close-complete-modal" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div
+            id="completion-modal-feedback"
+            class="feedback-message"
+            style="display: none"
+          ></div>
+          <form id="completion-form">
+            <div class="form-group">
+              <label for="evidence-photo">Foto de Evidencia (Mínimo 1):</label>
+              <input
+                type="file"
+                id="evidence-photo"
+                accept="image/jpeg,image/png"
+                multiple
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="completion-comment"
+                >Comentario Final (Opcional):</label
+              >
+              <textarea
+                id="completion-comment"
+                rows="3"
+                class="full-width"
+                placeholder="Información adicional sobre la finalización..."
+              ></textarea>
+            </div>
+            <div class="modal-actions">
+              <button type="submit" class="btn-success">Finalizar Tarea</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Carga de la lógica específica y core -->
+    <script type="module" src="assets/utils/dom.js"></script>
+    <script type="module" src="assets/js/auth.js"></script>
+    <script type="module" src="assets/js/api.js"></script>
+    <script type="module" src="assets/js/trabajador.js"></script>
+  </body>
+</html>
