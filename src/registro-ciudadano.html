@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Registro Ciudadano</title>
+    <link rel="stylesheet" href="./css/main.css" />
+    <link rel="stylesheet" href="./css/auth.css" />
+  </head>
+  <body class="auth-page">
+    <main class="auth-card">
+      <h1>Registro de Ciudadano</h1>
+      <form id="registroForm" novalidate>
+        <div class="form-group">
+          <label for="firstName">Nombre(s) *</label>
+          <input id="firstName" name="firstName" type="text" required />
+        </div>
+
+        <div class="form-group">
+          <label for="lastName">Apellido(s) *</label>
+          <input id="lastName" name="lastName" type="text" required />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Correo electrónico *</label>
+          <input id="email" name="email" type="email" required />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Contraseña *</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            minlength="8"
+            maxlength="12"
+            required
+          />
+          <small
+            >8–12 caracteres, al menos 1 número, 1 minúscula y 1 mayúscula. Sin
+            caracteres especiales.</small
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Teléfono (opcional)</label>
+          <input id="phone" name="phone" type="tel" />
+          <small>Formato válido para Perú. Ej: 9XXXXXXXX o +51 9XXXXXXXX</small>
+        </div>
+
+        <div class="form-group">
+          <label for="dob">Fecha de nacimiento *</label>
+          <input id="dob" name="dob" type="date" required />
+        </div>
+
+        <div id="formError" class="form-error" aria-live="polite"></div>
+
+        <button type="submit" class="btn-auth btn-primary">Registrarse</button>
+      </form>
+
+      <p>¿Ya tienes cuenta? <a href="login.html">Iniciar sesión</a></p>
+    </main>
+
+    <script type="module">
+      import { getById, showFeedback, hideFeedback } from "./utils/dom.js";
+      import { register } from "./js/auth.js";
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const form = getById("registroForm");
+        const errorElement = "formError";
+
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          hideFeedback(errorElement);
+
+          const firstname = getById("firstName").value.trim();
+          const lastname = getById("lastName").value.trim();
+          const email = getById("email").value.trim();
+          const password = getById("password").value.trim();
+          const phone = getById("phone").value.trim();
+          const dob = getById("dob").value.trim();
+
+          const errors = [];
+
+          // Validación del nombre completo
+          if (firstname.length < 3) {
+            errors.push("El nombre completo debe tener al menos 3 caracteres.");
+          }
+
+          if (lastname.length < 3) {
+            errors.push(
+              "El apellido completo debe tener al menos 3 caracteres."
+            );
+          }
+
+          // Validación del correo electrónico
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(email)) {
+            errors.push("Por favor, introduce un correo electrónico válido.");
+          }
+
+          // Validación de la contraseña
+          const passwordRegex =
+            /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[A-Za-z\d]{8,12}$/;
+          if (!passwordRegex.test(password)) {
+            errors.push(
+              "La contraseña no cumple los requisitos (8-12 caracteres, 1 mayúscula, 1 minúscula, 1 número)."
+            );
+          }
+
+          // Validación del teléfono (opcional)
+          if (phone) {
+            const phoneNormalized = phone.replace(/[\s\-]/g, "");
+            const peruPhoneRegex = /^(\+51)?(9\d{8}|1\d{7})$/;
+            if (!peruPhoneRegex.test(phoneNormalized)) {
+              errors.push(
+                "El teléfono no tiene formato válido (Perú). Ej: 9XXXXXXXX o +51 9XXXXXXXX"
+              );
+            }
+          }
+
+          // Validación de la fecha de nacimiento
+          if (!dob) {
+            errors.push("La fecha de nacimiento es obligatoria.");
+          } else {
+            const dobDate = new Date(dob);
+            const today = new Date();
+            if (isNaN(dobDate.getTime())) {
+              errors.push("La fecha de nacimiento no es válida.");
+            } else if (dobDate > today) {
+              errors.push(
+                "La fecha de nacimiento no puede ser una fecha futura."
+              );
+            } else {
+              // calcular edad
+              let age = today.getFullYear() - dobDate.getFullYear();
+              const m = today.getMonth() - dobDate.getMonth();
+              if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) {
+                age--;
+              }
+              if (age < 18) {
+                errors.push("Debes ser mayor de 18 años.");
+              }
+            }
+          }
+
+          if (errors.length > 0) {
+            showFeedback(errorElement, errors.join("\n"), "error");
+            return;
+          }
+
+          // Llamar a la función de registro del módulo auth.js
+          const success = await register(
+            firstname,
+            lastname,
+            email,
+            password,
+            phone,
+            dob
+          );
+
+          if (!success) {
+            showFeedback(
+              errorElement,
+              "Error al registrar usuario. Por favor, intente de nuevo.",
+              "error"
+            );
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

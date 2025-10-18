@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Iniciar Sesión</title>
     <link rel="stylesheet" href="./css/main.css" />
-    <link rel="stylesheet" href="./css/login.css" />
+    <link rel="stylesheet" href="./css/auth.css" />
     <link rel="shortcut icon" href="./img/favicon.ico" type="image/x-icon" />
   </head>
-  <body class="login-page">
-    <div class="login-card">
+  <body class="auth-page">
+    <div class="auth-card">
       <h1>Iniciar Sesión</h1>
       <div
         id="login-feedback"
@@ -26,9 +26,12 @@
           <label for="password">Contraseña</label>
           <input type="password" id="password" name="password" required />
         </div>
-        <button type="submit" class="btn-primary btn-login">
+        <button type="submit" class="btn-auth btn-success">
           Iniciar Sesión
         </button>
+        <p class="muted">
+          ¿No tienes cuenta? <a href="registro-ciudadano.html">Regístrate</a>
+        </p>
       </form>
     </div>
 
@@ -56,8 +59,6 @@
 
           const email = getById("email").value;
           const password = getById("password").value;
-
-          console.log(email, password);
 
           // Llamar a la función de login del módulo auth.js
           const success = await login(email, password);

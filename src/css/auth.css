@@ -1,0 +1,110 @@
+/* ----------------------------------------------------------------
+   auth.css: Estilos compartidos para Login y Registro
+---------------------------------------------------------------- */
+
+/* Contenedor principal para los formularios */
+.auth-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+}
+
+/* Tarjeta que envuelve el formulario */
+.auth-card {
+  background-color: var(--color-surface);
+  padding: 2.5rem 3rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+  width: 100%;
+  max-width: 420px;
+  box-sizing: border-box;
+}
+
+.auth-card h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 2rem;
+  color: var(--color-text);
+}
+
+/* Estilos para grupos de formulario (label + input) */
+.form-group {
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #4b4f56;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.9rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.1);
+}
+
+/* Botón principal del formulario */
+.btn-auth {
+  width: 100%;
+  padding: 0.9rem;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 1rem;
+}
+
+/* Modificador de color usando las variables de main.css */
+.btn-success {
+  background-color: var(--color-success);
+}
+
+.btn-success:hover {
+  background-color: #218838; /* Un poco más oscuro */
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+}
+
+.btn-primary:hover {
+  background-color: #0056b3; /* Un poco más oscuro */
+}
+
+/* Texto de ayuda o enlaces */
+.auth-card p {
+  margin-top: 1.5rem;
+  font-size: 0.95rem;
+  color: var(--color-secondary);
+  text-align: center;
+}
+
+.auth-card a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-card a:hover {
+  text-decoration: underline;
+}

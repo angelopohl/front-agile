@@ -3,11 +3,11 @@
 // ----------------------------------------------------------------
 
 export const API_BASE_URL =
-  "https://trujillo-informado-backend-3b3a9e8b54ac.herokuapp.com/api/v1"; // URL de la API de Spring Boot
+  "https://trujillo-informado-backend-3b3a9e8b54ac.herokuapp.com/api/v1"; // URL de la API de Spring Boot  http://localhost:8080
 
-const TOKEN_KEY_ACCESS = "accessToken";
-const TOKEN_KEY_REFRESH = "refreshToken";
-const ROLE_KEY = "userRole";
+const TOKEN_KEY_ACCESS = "trujillo_accessToken";
+const TOKEN_KEY_REFRESH = "trujillo_refreshToken";
+const ROLE_KEY = "trujillo_userRole";
 
 /**
  * Guarda los tokens y el rol en localStorage.
@@ -59,8 +59,10 @@ export function getUserRole() {
  * @param {string} role - Rol del usuario ('CIUDADANO', 'SUPERVISOR', 'TRABAJADOR').
  */
 export function redirectToDashboard(role) {
-  let url = "login.html";
-  switch (role.toUpperCase()) {
+  let url = ""; // 1. Inicializamos la URL como vacía
+
+  // 2. Usamos optional chaining (?.) para evitar errores si el rol es null o undefined
+  switch (role?.toUpperCase()) {
     case "CIUDADANO":
       url = "dashboard-ciudadano.html";
       break;
@@ -71,7 +73,17 @@ export function redirectToDashboard(role) {
       url = "dashboard-trabajador.html";
       break;
   }
-  window.location.href = url;
+
+  // 3. ¡LA LÍNEA MÁS IMPORTANTE! Solo redirigimos si se encontró una URL válida.
+  if (url) {
+    window.location.href = url;
+  } else {
+    // Si no se encuentra una URL, no hacemos nada.
+    // Esto rompe el bucle y permite que la página de login se muestre correctamente.
+    console.warn(
+      `Rol no válido ("${role}") encontrado. No se puede redirigir.`
+    );
+  }
 }
 
 /**
@@ -155,6 +167,66 @@ export async function login(email, password) {
     }
 
     clearTokens();
+    return false;
+  }
+}
+
+/** * Registra un nuevo usuario.
+ * @param {string} firstname
+ * @param {string} lastname
+ * @param {string} email
+ * @param {string} password
+ * @param {string|null
+ * @param {string} birthdate
+ * @returns {Promise<boolean>} True si el registro fue exitoso.
+ */
+export async function register(
+  firstname,
+  lastname,
+  email,
+  password,
+  phone = null,
+  birthdate
+) {
+  try {
+    const payload = {
+      firstname,
+      lastname,
+      email,
+      password,
+      phone: phone || null,
+      birthdate,
+    };
+
+    // Ajusta el endpoint según tu backend
+    const resp = await fetch(`${API_BASE_URL}/auth/registro`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const body = await resp.json().catch(() => ({}));
+
+    if (!resp.ok) {
+      console.error("Registro fallido:", body);
+      return false;
+    }
+
+    // Si el backend devuelve tokens, guardarlos y redirigir
+    if (body.accessToken && body.refreshToken) {
+      saveTokens({
+        accessToken: body.accessToken,
+        refreshToken: body.refreshToken,
+        role: body.role || "CIUDADANO",
+      });
+      redirectToDashboard(body.role || "CIUDADANO");
+      return true;
+    }
+
+    // Registro exitoso pero sin tokens (p. ej. 201 Created)
+    return true;
+  } catch (err) {
+    console.error("Error en register:", err);
     return false;
   }
 }

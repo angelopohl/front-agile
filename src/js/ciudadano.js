@@ -164,64 +164,22 @@ function renderReports(reports, totalPagesFromServer = 1) {
  */
 async function loadReports() {
   try {
+    // 1. Llama al endpoint CORRECTO Y ESPECÍFICO para el usuario logueado.
+    // El backend ya se encarga de filtrar y paginar por nosotros.
     const resp = await fetchWithAuth(
-      `${API_BASE_URL}/reportes?page=${currentPage}&size=${REPORTS_PER_PAGE}&sort=createdAt,desc`
+      `${API_BASE_URL}/reportes/me?page=${currentPage}&size=${REPORTS_PER_PAGE}&sort=createdAt,desc`
     );
-    const data = await resp.json();
-    console.log("Datos de reportes:", data);
 
-    // data.content suele contener la página actual
-    const reports = Array.isArray(data.content)
-      ? data.content
-      : Array.isArray(data)
-      ? data
-      : [];
-    // Obtener usuario actual
-    const user = getCurrentUser();
-    const userId = user?.id ?? user?.sub ?? null;
+    // 2. La respuesta del servidor ya contiene EXACTAMENTE lo que necesitamos.
+    const pageData = await resp.json(); // Ej: { content: [...], totalPages: 5 }
 
-    // Filtrar por citizenId / owner / campo que use tu API
-    let myReports = reports;
-    if (userId != null) {
-      myReports = reports.filter((r) => {
-        // soporta varios formatos: r.citizenId, r.citizen?.id, r.userId, etc.
-        return (
-          String(
-            r.citizenId ?? r.userId ?? r.citizen?.id ?? r.ownerId ?? ""
-          ) === String(userId)
-        );
-      });
-    }
-
-    // Si el backend ya devolvía paginado y filtrado correctamente, myReports === reports.
-    // Calcular totalPages desde la longitud filtrada si el backend no lo hizo.
-    const totalElementsFromServer =
-      typeof data.totalElements === "number" ? data.totalElements : null;
-    const serverTotalPages =
-      typeof data.totalPages === "number" ? data.totalPages : null;
-
-    // Si el backend devolvió totalPages y supones que ya vino filtrado, úsalos.
-    // Si no, recalcula a partir de myReports (paginación en cliente).
-    if (serverTotalPages && (reports.length === myReports.length || !userId)) {
-      totalPages = serverTotalPages;
-      // renderizar directamente los reports recibidos (asume backend ya paginó)
-      renderReports(myReports, totalPages);
+    // 3. No hay que filtrar NADA. Simplemente renderizamos los datos recibidos.
+    // El backend es nuestra "fuente única de la verdad".
+    if (pageData && pageData.content) {
+      renderReports(pageData.content, pageData.totalPages);
     } else {
-      // paginación en cliente: recalcular totalPages y tomar slice para la página actual
-      const filteredTotalElements = myReports.length;
-      totalPages = Math.max(
-        1,
-        Math.ceil(filteredTotalElements / REPORTS_PER_PAGE)
-      );
-
-      // ajustar currentPage si quedó fuera de rango
-      if (currentPage > totalPages - 1)
-        currentPage = Math.max(0, totalPages - 1);
-
-      const start = currentPage * REPORTS_PER_PAGE;
-      const pageReports = myReports.slice(start, start + REPORTS_PER_PAGE);
-
-      renderReports(pageReports, totalPages);
+      // Manejar el caso de una respuesta vacía o inesperada
+      renderReports([], 0);
     }
   } catch (error) {
     console.error("Error al cargar reportes:", error);
