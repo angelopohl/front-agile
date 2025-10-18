@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------
 
 export const API_BASE_URL =
-  "https://trujillo-informado-backend-3b3a9e8b54ac.herokuapp.com/api/v1"; // URL de la API de Spring Boot  http://localhost:8080
+  "https://trujillo-informado-backend-3b3a9e8b54ac.herokuapp.com/api/v1"; // URL de la API de Spring Boot   http://localhost:8080
 
 const TOKEN_KEY_ACCESS = "trujillo_accessToken";
 const TOKEN_KEY_REFRESH = "trujillo_refreshToken";
@@ -214,12 +214,7 @@ export async function register(
 
     // Si el backend devuelve tokens, guardarlos y redirigir
     if (body.accessToken && body.refreshToken) {
-      saveTokens({
-        accessToken: body.accessToken,
-        refreshToken: body.refreshToken,
-        role: body.role || "CIUDADANO",
-      });
-      redirectToDashboard(body.role || "CIUDADANO");
+      window.location.href = "login.html";
       return true;
     }
 

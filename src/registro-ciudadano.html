@@ -78,7 +78,7 @@
           const email = getById("email").value.trim();
           const password = getById("password").value.trim();
           const phone = getById("phone").value.trim();
-          const dob = getById("dob").value.trim();
+          const birthdate = getById("dob").value.trim();
 
           const errors = [];
 
@@ -120,10 +120,10 @@
           }
 
           // Validación de la fecha de nacimiento
-          if (!dob) {
+          if (!birthdate) {
             errors.push("La fecha de nacimiento es obligatoria.");
           } else {
-            const dobDate = new Date(dob);
+            const dobDate = new Date(birthdate);
             const today = new Date();
             if (isNaN(dobDate.getTime())) {
               errors.push("La fecha de nacimiento no es válida.");
@@ -156,7 +156,7 @@
             email,
             password,
             phone,
-            dob
+            birthdate
           );
 
           if (!success) {
