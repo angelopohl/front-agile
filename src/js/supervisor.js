@@ -1,8 +1,8 @@
 // ----------------------------------------------------------------
-// supervisor.js: Lógica del Dashboard del Supervisor
+// supervisor.js: Lógica del Dashboard del Supervisor (CORREGIDO)
 // ----------------------------------------------------------------
 
-import { checkAuthAndRedirect, getUserRole } from "./auth.js";
+import { checkAuthAndRedirect, API_BASE_URL, getUserRole } from "./auth.js";
 import { fetchWithAuth } from "./api.js";
 import {
   getById,
@@ -11,101 +11,105 @@ import {
   hideFeedback,
 } from "../utils/dom.js";
 
-// Mock Data
-let mockIncomingReports = [
-  {
-    id: 101,
-    date: "2024-10-08 14:00",
-    type: "MALEZA",
-    location: "Av. Las Palmas 123",
-    status: "NUEVO",
-  },
-  {
-    id: 102,
-    date: "2024-10-09 09:30",
-    type: "RESIDUOS SOLIDOS",
-    location: "Calle Central 456",
-    status: "NUEVO",
-  },
-  {
-    id: 103,
-    date: "2024-10-09 16:15",
-    type: "BARRIDO",
-    location: "Jr. Los Andes 789",
-    status: "NUEVO",
-  },
-  {
-    id: 104,
-    date: "2024-10-10 11:00",
-    type: "RESIDUOS SOLIDOS",
-    location: "Av. Sol 101",
-    status: "NUEVO",
-  },
-];
+// CAMBIO: Eliminamos los datos mock. La información vendrá de la API.
+// let mockIncomingReports = [...];
+// const mockWorkers = [...];
 
-const mockWorkers = [
-  { id: "w001", name: "Juan Pérez (Recojo)" },
-  { id: "w002", name: "María López" },
-  { id: "w003", name: "Carlos Ruiz (Recojo)" },
-  { id: "w004", name: "Ana Torres" },
-];
+let currentReportToAssign = null; // Guardará el reporte seleccionado para asignar
+let allWorkers = []; // Guardará la lista de trabajadores obtenida de la API
 
-let currentReportToAssign = null;
 const REPORTS_PER_PAGE = 10;
-let currentPage = 1;
+let currentPage = 0; // CAMBIO: La paginación ahora es 0-indexada como en ciudadano.js
+let totalPages = 1; // CAMBIO: Se actualizará desde la API
+
+/**
+ * Formatea la fecha y hora.
+ * @param {string} input - Fecha en formato ISO.
+ */
+function formatDateTimeWithSeconds(input) {
+  if (!input) return "";
+  const d = new Date(input);
+  if (isNaN(d)) return String(input);
+  const pad2 = (n) => String(n).padStart(2, "0");
+  return `${pad2(d.getDate())}/${pad2(
+    d.getMonth() + 1
+  )}/${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(
+    d.getSeconds()
+  )}`;
+}
 
 /**
  * Dibuja la tabla de reportes en el DOM.
- * @param {Array<Object>} reports - Lista de reportes.
+ * @param {Array<Object>} reports - Lista de reportes de la página actual.
  */
 function renderReports(reports) {
   const tableBody = getById("reports-table-body");
   if (!tableBody) return;
 
-  const start = (currentPage - 1) * REPORTS_PER_PAGE;
-  const end = start + REPORTS_PER_PAGE;
-  const paginatedReports = reports.slice(start, end);
-
+  // CAMBIO: Ya no se usa slice. El backend ya nos da la página correcta.
   tableBody.innerHTML = "";
 
-  paginatedReports.forEach((report) => {
+  reports.forEach((report) => {
     const row = tableBody.insertRow();
+    // Suponiendo que el backend devuelve un objeto 'location' con 'address'
+    const locationAddress = report.location?.address || "No especificada";
+    // Suponiendo que el backend devuelve 'photos' como un array de URLs
+    const photoUrl =
+      report.photos && report.photos.length > 0
+        ? report.photos[0]
+        : "https://placehold.co/150x150?text=Sin+Imagen";
+
     row.innerHTML = `
-            <td>${report.date}</td>
-            <td>${report.type}</td>
-            <td>${report.location}</td>
-            <td>
-                <button class="btn-primary btn-sm assign-btn" data-report-id="${report.id}">
-                    Asignar Reporte
-                </button>
-            </td>
-        `;
+      <td>${formatDateTimeWithSeconds(report.createdAt)}</td>
+      <td>${
+        report.type === "RESIDUOS_SOLIDOS"
+          ? "Residuos Sólidos"
+          : report.type === "BARRIDO"
+          ? "Barrido"
+          : "Maleza"
+      }</td>
+      <td>${locationAddress}</td>
+      <td><img src="${photoUrl}" alt="Foto del reporte" style="width:150px; height:150px; border-radius:4px; object-fit: cover;"></td>
+      <td>
+        <button class="btn-primary btn-sm assign-btn">
+          Asignar Reporte
+        </button>
+      </td>
+    `;
+
+    // CAMBIO: Guardar el objeto de reporte completo en el botón para fácil acceso
+    row
+      .querySelector(".assign-btn")
+      .addEventListener("click", () => handleAssignButtonClick(report));
   });
 
-  // Agregar listeners a los nuevos botones
-  document.querySelectorAll(".assign-btn").forEach((button) => {
-    button.addEventListener("click", handleAssignButtonClick);
-  });
-
-  // Actualizar controles de paginación
-  getById("page-info").textContent = `Página ${currentPage} de ${Math.ceil(
-    reports.length / REPORTS_PER_PAGE
-  )}`;
-  getById("prev-page").disabled = currentPage === 1;
-  getById("next-page").disabled =
-    currentPage * REPORTS_PER_PAGE >= reports.length;
+  // CAMBIO: Actualizar controles de paginación con datos de la API
+  const pageInfoEl = getById("page-info");
+  if (pageInfoEl) {
+    pageInfoEl.textContent = `Página ${currentPage + 1} de ${totalPages}`;
+  }
+  getById("prev-page").disabled = currentPage === 0;
+  getById("next-page").disabled = currentPage >= totalPages - 1;
 }
 
 /**
- * Función que simula la obtención de datos de reportes.
+ * Carga los reportes desde la API.
  */
 async function loadIncomingReports() {
   try {
-    // En un proyecto real, usaríamos:
-    // const response = await fetchWithAuth(`${API_BASE_URL}/supervisor/incoming-reports?page=${currentPage}`);
-    // const data = await response.json();
+    // CAMBIO: Se llama a la API real. Asumimos que el endpoint para el supervisor es este.
+    const response = await fetchWithAuth(
+      `${API_BASE_URL}/reportes/supervisor/me?page=${currentPage}&size=${REPORTS_PER_PAGE}&sort=createdAt,asc`
+    );
+    const pageData = await response.json();
 
-    renderReports(mockIncomingReports);
+    if (pageData && pageData.content) {
+      totalPages = pageData.totalPages; // Actualizamos el total de páginas
+      renderReports(pageData.content);
+    } else {
+      renderReports([]);
+      totalPages = 1;
+    }
   } catch (error) {
     console.error("Error al cargar reportes:", error);
     showFeedback(
@@ -117,34 +121,41 @@ async function loadIncomingReports() {
 }
 
 /**
- * Maneja el click en el botón "Asignar Reporte".
- * @param {Event} event
+ * Carga la lista de trabajadores desde la API.
  */
-function handleAssignButtonClick(event) {
-  const reportId = parseInt(event.target.dataset.reportId);
-  currentReportToAssign = mockIncomingReports.find((r) => r.id === reportId);
-
-  if (!currentReportToAssign) {
-    showFeedback("dashboard-feedback", "Reporte no encontrado.", "error");
-    return;
+async function loadWorkers() {
+  try {
+    // CAMBIO: Endpoint real para obtener trabajadores. Ajustar si es diferente.
+    const response = await fetchWithAuth(`${API_BASE_URL}/trabajadores`);
+    allWorkers = await response.json();
+  } catch (error) {
+    console.error("Error al cargar trabajadores:", error);
+    showFeedback(
+      "dashboard-feedback",
+      "No se pudo cargar la lista de trabajadores.",
+      "error"
+    );
+    allWorkers = []; // Asegurarse que está vacío en caso de error
   }
+}
+
+/**
+ * Maneja el click en el botón "Asignar Reporte".
+ * @param {Object} report - El objeto completo del reporte a asignar.
+ */
+function handleAssignButtonClick(report) {
+  currentReportToAssign = report; // Guardamos el reporte actual
 
   // Rellenar el modal
   getById("modal-report-type").value = currentReportToAssign.type;
-
   const workerSelect = getById("worker-select");
   workerSelect.innerHTML = '<option value="">Seleccione un Trabajador</option>';
 
-  // Filtrar trabajadores para "Recojo" si el reporte es Residuos Sólidos
-  const isRecojoNeeded = currentReportToAssign.type === "RESIDUOS SOLIDOS";
-  const workersToDisplay = isRecojoNeeded
-    ? mockWorkers.filter((w) => w.name.includes("(Recojo)"))
-    : mockWorkers;
-
-  workersToDisplay.forEach((worker) => {
+  // CAMBIO: Usar la lista de trabajadores real (`allWorkers`)
+  allWorkers.forEach((worker) => {
     const option = document.createElement("option");
-    option.value = worker.id;
-    option.textContent = worker.name;
+    option.value = worker.id; // Asumimos que cada trabajador tiene un 'id'
+    option.textContent = worker.name; // Asumimos 'name' y 'lastname'
     workerSelect.appendChild(option);
   });
 
@@ -159,11 +170,11 @@ function handleAssignButtonClick(event) {
 async function handleAssignFormSubmit(event) {
   event.preventDefault();
 
-  const assignedWorkerId = getById("worker-select").value;
-  const newReportType = getById("modal-report-type").value;
-  const comment = getById("assignment-comment").value;
+  const workerId = getById("worker-select").value;
+  const newType = getById("modal-report-type").value; // Supervisor puede corregir el tipo
+  const supervisorComment = getById("assignment-comment").value;
 
-  if (!assignedWorkerId) {
+  if (!workerId) {
     showFeedback(
       "assign-modal-feedback",
       "Debe seleccionar un trabajador.",
@@ -172,42 +183,39 @@ async function handleAssignFormSubmit(event) {
     return;
   }
 
+  const payload = {
+    reportId: currentReportToAssign.id,
+    workerId: workerId,
+    description: supervisorComment,
+    type: newType,
+  };
+
   try {
-    // Simulación de llamada al API
-    // const response = await fetchWithAuth(`${API_BASE_URL}/supervisor/assign`, {
-    //     method: 'POST',
-    //     body: JSON.stringify({
-    //         reportId: currentReportToAssign.id,
-    //         workerId: assignedWorkerId,
-    //         newReportType,
-    //         comment
-    //     })
-    // });
+    // CAMBIO: Llamada real a la API para asignar la tarea
+    const response = await fetchWithAuth(`${API_BASE_URL}/tarea`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-    // if (!response.ok) throw new Error('Fallo al asignar reporte');
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.message || "Fallo al asignar reporte");
+    }
 
-    // Simulación: remover el reporte de la lista local
-    mockIncomingReports = mockIncomingReports.filter(
-      (r) => r.id !== currentReportToAssign.id
-    );
-
-    console.log("Reporte asignado exitosamente:", currentReportToAssign.id);
     showFeedback(
       "assign-modal-feedback",
       "Reporte asignado y tarea creada exitosamente.",
       "success"
     );
 
+    // CAMBIO: Recargar la lista de reportes para que el asignado desaparezca
     setTimeout(() => {
       toggleModal("assign-report-modal", false);
       loadIncomingReports();
     }, 1500);
   } catch (error) {
-    showFeedback(
-      "assign-modal-feedback",
-      "Error al asignar la tarea. Intente de nuevo.",
-      "error"
-    );
+    showFeedback("assign-modal-feedback", `Error: ${error.message}`, "error");
   }
 }
 
@@ -216,7 +224,8 @@ document.addEventListener("DOMContentLoaded", () => {
   checkAuthAndRedirect("SUPERVISOR");
 
   if (getUserRole() === "SUPERVISOR") {
-    loadIncomingReports();
+    loadIncomingReports(); // Cargar los reportes al iniciar
+    loadWorkers(); // Cargar los trabajadores al iniciar
   }
 
   // Configurar listeners del modal de Asignación
@@ -227,14 +236,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Configurar paginación
   getById("prev-page").addEventListener("click", () => {
-    if (currentPage > 1) {
+    if (currentPage > 0) {
       currentPage--;
       loadIncomingReports();
     }
   });
 
   getById("next-page").addEventListener("click", () => {
-    if (currentPage * REPORTS_PER_PAGE < mockIncomingReports.length) {
+    if (currentPage < totalPages - 1) {
       currentPage++;
       loadIncomingReports();
     }

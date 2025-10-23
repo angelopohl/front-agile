@@ -1,8 +1,13 @@
 // ----------------------------------------------------------------
-// trabajador.js: Lógica del Dashboard del Trabajador
+// trabajador.js: Lógica del Dashboard del Trabajador (CORREGIDO)
 // ----------------------------------------------------------------
 
-import { checkAuthAndRedirect, getUserRole } from "./auth.js";
+import {
+  checkAuthAndRedirect,
+  getUserRole,
+  API_BASE_URL,
+  getAccessToken,
+} from "./auth.js";
 import { fetchWithAuth } from "./api.js";
 import {
   getById,
@@ -11,88 +16,97 @@ import {
   hideFeedback,
 } from "../utils/dom.js";
 
-// Mock Data
-let mockAssignedTasks = [
-  {
-    id: 201,
-    type: "MALEZA",
-    location: "Av. Las Palmas 123",
-    photoUrl: "https://placehold.co/100x100/123/fff?text=Maleza+Original",
-    assignedDate: "2024-10-10",
-  },
-  {
-    id: 202,
-    type: "RESIDUOS SOLIDOS",
-    location: "Calle Central 456",
-    photoUrl: "https://placehold.co/100x100/333/fff?text=Residuos+Original",
-    assignedDate: "2024-10-10",
-  },
-  {
-    id: 203,
-    type: "BARRIDO",
-    location: "Jr. Los Andes 789",
-    photoUrl: "https://placehold.co/100x100/666/fff?text=Barrido+Original",
-    assignedDate: "2024-10-11",
-  },
-];
-
+// CAMBIO: Se eliminan los datos mock.
 let currentTaskToComplete = null;
-const REPORTS_PER_PAGE = 10;
-let currentPage = 1;
+const TASKS_PER_PAGE = 10;
+let currentPage = 0; // CAMBIO: Paginación 0-indexada.
+let totalPages = 1;
+
+/**
+ * Formatea la fecha para mostrar solo día/mes/año.
+ * @param {string} input - Fecha en formato ISO.
+ */
+function formatDate(input) {
+  if (!input) return "";
+  const d = new Date(input);
+  if (isNaN(d)) return String(input);
+  const pad2 = (n) => String(n).padStart(2, "0");
+  return `${pad2(d.getDate())}/${pad2(
+    d.getMonth() + 1
+  )}/${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(
+    d.getSeconds()
+  )}`;
+}
 
 /**
  * Dibuja la tabla de tareas asignadas en el DOM.
- * @param {Array<Object>} tasks - Lista de tareas.
+ * @param {Array<Object>} tasks - Lista de tareas de la página actual.
  */
 function renderTasks(tasks) {
   const tableBody = getById("tasks-table-body");
   if (!tableBody) return;
 
-  const start = (currentPage - 1) * REPORTS_PER_PAGE;
-  const end = start + REPORTS_PER_PAGE;
-  const paginatedTasks = tasks.slice(start, end);
+  tableBody.innerHTML = ""; // Limpiar antes de renderizar.
 
-  tableBody.innerHTML = "";
+  tasks.forEach((task) => {
+    // Asumimos que la API devuelve la tarea con el reporte anidado.
+    const reporte = task.report || {};
+    const location = reporte.location?.address || "Ubicación no disponible";
+    const photoUrl =
+      reporte.photos && reporte.photos.length > 0
+        ? reporte.photos[0]
+        : "https://placehold.co/150x150?text=Sin+Imagen";
+    const type =
+      reporte.type === "RESIDUOS_SOLIDOS"
+        ? "Residuos Sólidos"
+        : reporte.type === "BARRIDO"
+        ? "Barrido"
+        : "Maleza" || "No especificado";
 
-  paginatedTasks.forEach((task) => {
     const row = tableBody.insertRow();
     row.innerHTML = `
-            <td>${task.assignedDate}</td>
-            <td>${task.type}</td>
-            <td>${task.location}</td>
-            <td><img src="${task.photoUrl}" alt="Ubicación" style="width:50px; height:50px; border-radius:4px;"></td>
-            <td>
-                <button class="btn-success btn-sm complete-btn" data-task-id="${task.id}">
-                    Completar Tarea
-                </button>
-            </td>
-        `;
+      <td>${formatDate(task.assignedAt)}</td>
+      <td>${type}</td>
+      <td>${location}</td>
+      <td><a href="${photoUrl}" target="_blank"><img src="${photoUrl}" alt="Foto del reporte" style="width:150px; height:150px; border-radius:4px; object-fit: cover;"></a></td>
+      <td>
+        <button class="btn-success btn-sm complete-btn">
+          Completar Tarea
+        </button>
+      </td>
+    `;
+    // Guardar el objeto de tarea completo en el botón para fácil acceso.
+    row
+      .querySelector(".complete-btn")
+      .addEventListener("click", () => handleCompleteButtonClick(task));
   });
 
-  // Agregar listeners a los nuevos botones
-  document.querySelectorAll(".complete-btn").forEach((button) => {
-    button.addEventListener("click", handleCompleteButtonClick);
-  });
-
-  // Actualizar controles de paginación
-  getById("page-info").textContent = `Página ${currentPage} de ${Math.ceil(
-    tasks.length / REPORTS_PER_PAGE
-  )}`;
-  getById("prev-page").disabled = currentPage === 1;
-  getById("next-page").disabled =
-    currentPage * REPORTS_PER_PAGE >= tasks.length;
+  // Actualizar controles de paginación.
+  getById("page-info").textContent = `Página ${
+    currentPage + 1
+  } de ${totalPages}`;
+  getById("prev-page").disabled = currentPage === 0;
+  getById("next-page").disabled = currentPage >= totalPages - 1;
 }
 
 /**
- * Función que simula la obtención de tareas asignadas.
+ * Carga las tareas asignadas al trabajador desde la API.
  */
 async function loadAssignedTasks() {
   try {
-    // En un proyecto real, usaríamos:
-    // const response = await fetchWithAuth(`${API_BASE_URL}/trabajador/assigned-tasks?page=${currentPage}`);
-    // const data = await response.json();
+    // CAMBIO: Llamada real a la API para obtener las tareas del trabajador logueado.
+    const response = await fetchWithAuth(
+      `${API_BASE_URL}/tareas/me?page=${currentPage}&size=${TASKS_PER_PAGE}&sort=createdAt,asc`
+    );
+    const pageData = await response.json();
 
-    renderTasks(mockAssignedTasks);
+    if (pageData && pageData.content) {
+      totalPages = pageData.totalPages;
+      renderTasks(pageData.content);
+    } else {
+      totalPages = 1;
+      renderTasks([]);
+    }
   } catch (error) {
     console.error("Error al cargar tareas:", error);
     showFeedback(
@@ -105,22 +119,44 @@ async function loadAssignedTasks() {
 
 /**
  * Maneja el click en el botón "Completar Tarea".
- * @param {Event} event
+ * @param {Object} task - La tarea seleccionada.
  */
-function handleCompleteButtonClick(event) {
-  const taskId = parseInt(event.target.dataset.taskId);
-  currentTaskToComplete = mockAssignedTasks.find((t) => t.id === taskId);
-
-  if (!currentTaskToComplete) {
-    showFeedback("dashboard-feedback", "Tarea no encontrada.", "error");
-    return;
-  }
-
-  // Abrir modal y limpiar
-  getById("task-id-display").textContent = currentTaskToComplete.id;
+function handleCompleteButtonClick(task) {
+  currentTaskToComplete = task;
+  // Abrir modal y limpiar.
+  getById(
+    "task-id-display"
+  ).textContent = `Tarea #${task.id} (Reporte #${task.report.id})`;
   getById("completion-form").reset();
   hideFeedback("completion-modal-feedback");
   toggleModal("complete-task-modal", true);
+}
+
+/**
+ * Sube un archivo al endpoint del backend que actúa como proxy a Cloudinary.
+ * @param {File} file - El archivo a subir.
+ * @returns {Promise<string>} La URL del archivo subido.
+ */
+async function uploadFile(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const token = getAccessToken();
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const res = await fetch(`${API_BASE_URL}/tarea/cargar`, {
+    // Reutilizamos el endpoint de carga
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Error subiendo la imagen: ${errorText}`);
+  }
+
+  const resultUrl = await res.text(); // Asumimos que la API devuelve la URL como texto plano.
+  return resultUrl.trim();
 }
 
 /**
@@ -129,59 +165,56 @@ function handleCompleteButtonClick(event) {
  */
 async function handleCompletionFormSubmit(event) {
   event.preventDefault();
+  const feedbackId = "completion-modal-feedback";
 
-  const evidenceFile = getById("evidence-photo").files[0];
-  const comment = getById("completion-comment").value;
+  const evidenceFiles = Array.from(getById("evidence-photo").files); // <-- cambio: tomar todos los archivos
+  const comment = getById("completion-comment").value.trim();
 
-  if (!evidenceFile) {
+  if (!evidenceFiles.length) {
     showFeedback(
-      "completion-modal-feedback",
+      feedbackId,
       "Debe subir al menos una foto de evidencia.",
       "error"
     );
     return;
   }
 
-  // En un proyecto real, aquí se usaría FormData para enviar el archivo
-  // junto con el ID de la tarea y el comentario al API.
-
   try {
-    // Simulación de llamada al API
-    // const formData = new FormData();
-    // formData.append('taskId', currentTaskToComplete.id);
-    // formData.append('evidence', evidenceFile);
-    // formData.append('comment', comment);
+    showFeedback(feedbackId, "Subiendo evidencias...", "info");
 
-    // const response = await fetchWithAuth(`${API_BASE_URL}/trabajador/complete-task`, {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': undefined }, // Dejar que fetch lo maneje con FormData
-    //     body: formData
-    // });
+    // Subir todas las imágenes en paralelo
+    const uploadPromises = evidenceFiles.map((file) => uploadFile(file));
+    const evidenceUrls = await Promise.all(uploadPromises);
 
-    // if (!response.ok) throw new Error('Fallo al completar la tarea');
+    showFeedback(feedbackId, "Registrando finalización...", "info");
 
-    // Simulación: remover la tarea de la lista local
-    mockAssignedTasks = mockAssignedTasks.filter(
-      (t) => t.id !== currentTaskToComplete.id
+    const payload = {
+      evidences: evidenceUrls, // <-- ahora un array de URLs
+      notes: comment,
+    };
+
+    const response = await fetchWithAuth(
+      `${API_BASE_URL}/tarea/${currentTaskToComplete.id}/completar`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
     );
 
-    console.log("Tarea completada exitosamente:", currentTaskToComplete.id);
-    showFeedback(
-      "completion-modal-feedback",
-      "Tarea marcada como resuelta. ¡Buen trabajo!",
-      "success"
-    );
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.message || "Fallo al completar la tarea");
+    }
+
+    showFeedback(feedbackId, "¡Tarea completada con éxito!", "success");
 
     setTimeout(() => {
       toggleModal("complete-task-modal", false);
-      loadAssignedTasks(); // Recargar la lista
+      loadAssignedTasks();
     }, 1500);
   } catch (error) {
-    showFeedback(
-      "completion-modal-feedback",
-      "Error al completar la tarea. Intente de nuevo.",
-      "error"
-    );
+    showFeedback(feedbackId, `Error: ${error.message}`, "error");
   }
 }
 
@@ -193,7 +226,6 @@ document.addEventListener("DOMContentLoaded", () => {
     loadAssignedTasks();
   }
 
-  // Configurar listeners del modal de Completar Tarea
   getById("close-complete-modal").addEventListener("click", () =>
     toggleModal("complete-task-modal", false)
   );
@@ -202,16 +234,16 @@ document.addEventListener("DOMContentLoaded", () => {
     handleCompletionFormSubmit
   );
 
-  // Configurar paginación
+  // Configurar paginación.
   getById("prev-page").addEventListener("click", () => {
-    if (currentPage > 1) {
+    if (currentPage > 0) {
       currentPage--;
       loadAssignedTasks();
     }
   });
 
   getById("next-page").addEventListener("click", () => {
-    if (currentPage * REPORTS_PER_PAGE < mockAssignedTasks.length) {
+    if (currentPage < totalPages - 1) {
       currentPage++;
       loadAssignedTasks();
     }

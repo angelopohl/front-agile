@@ -141,7 +141,13 @@ function renderReports(reports, totalPagesFromServer = 1) {
 
     row.innerHTML = `
             <td>${createdAtFormatted}</td>
-            <td>${report.type}</td>
+            <td>${
+              report.type === "RESIDUOS_SOLIDOS"
+                ? "Residuos Sólidos"
+                : report.type === "BARRIDO"
+                ? "Barrido"
+                : "Maleza"
+            }</td>
             <td class="${statusClass}">${report.status}</td>
         `;
   });
@@ -263,7 +269,6 @@ if (reportForm) {
       }
       // Leer el body una sola vez como texto (evita bodyUsed issues)
       const rawText = await res.text().catch(() => null);
-      console.log("Respuesta de upload:", res, "rawText:", rawText);
 
       if (!res.ok) {
         throw new Error(
@@ -369,7 +374,6 @@ if (reportForm) {
       const lng = lngStr ? parseFloat(lngStr) : null;
 
       const user = getCurrentUser();
-      console.log("Usuario actual:", user);
       const payload = {
         type,
         description,

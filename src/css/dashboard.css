@@ -106,7 +106,7 @@
     border-radius: var(--border-radius);
     width: 90%;
     max-width: 600px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); 
     position: relative;
     animation: fadeIn 0.3s ease-out;
 }
@@ -116,11 +116,14 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem; 
+    border-bottom: 1px solid #e9ecef; /* La línea gris separadora */
 }
 
 .modal-header h3 {
     margin: 0;
     color: var(--color-primary);
+    font-size: 1.3rem; 
 }
 
 .close-btn {
@@ -140,6 +143,10 @@
 
 .modal-body .form-group {
     margin-bottom: 1rem;
+    display: grid; 
+    grid-template-columns: 1fr 2fr;   
+    align-items: center; 
+    gap: 1rem; 
 }
 
 .modal-actions {
