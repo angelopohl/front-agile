@@ -96,7 +96,7 @@ async function loadAssignedTasks() {
   try {
     // CAMBIO: Llamada real a la API para obtener las tareas del trabajador logueado.
     const response = await fetchWithAuth(
-      `${API_BASE_URL}/tareas/me?page=${currentPage}&size=${TASKS_PER_PAGE}&sort=createdAt,asc`
+      `${API_BASE_URL}/tareas/me?page=${currentPage}&size=${TASKS_PER_PAGE}&sort=assignedAt,desc`
     );
     const pageData = await response.json();
 

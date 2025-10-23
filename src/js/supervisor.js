@@ -99,7 +99,7 @@ async function loadIncomingReports() {
   try {
     // CAMBIO: Se llama a la API real. Asumimos que el endpoint para el supervisor es este.
     const response = await fetchWithAuth(
-      `${API_BASE_URL}/reportes/supervisor/me?page=${currentPage}&size=${REPORTS_PER_PAGE}&sort=createdAt,asc`
+      `${API_BASE_URL}/reportes/supervisor/me?page=${currentPage}&size=${REPORTS_PER_PAGE}&sort=createdAt,desc`
     );
     const pageData = await response.json();
 
@@ -155,7 +155,7 @@ function handleAssignButtonClick(report) {
   allWorkers.forEach((worker) => {
     const option = document.createElement("option");
     option.value = worker.id; // Asumimos que cada trabajador tiene un 'id'
-    option.textContent = worker.name; // Asumimos 'name' y 'lastname'
+    option.textContent = worker.name + " " + worker.lastname; // Asumimos 'name' y 'lastname'
     workerSelect.appendChild(option);
   });
 
