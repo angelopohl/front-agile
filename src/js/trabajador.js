@@ -226,6 +226,15 @@ document.addEventListener("DOMContentLoaded", () => {
     loadAssignedTasks();
   }
 
+  // Agregar listener para el botón de refrescar
+  const refreshBtn = getById("refresh-tasks-btn");
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      currentPage = 0; // opcional: volver a primera página
+      loadAssignedTasks();
+    });
+  }
+
   getById("close-complete-modal").addEventListener("click", () =>
     toggleModal("complete-task-modal", false)
   );

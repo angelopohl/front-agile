@@ -22,6 +22,10 @@
     margin: 0;
 }
 
+.header-actions button {
+    margin-left: 1rem;
+}
+
 .main-content {
     padding: 2rem;
     flex-grow: 1;
