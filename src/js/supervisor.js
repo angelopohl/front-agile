@@ -164,6 +164,65 @@ function handleAssignButtonClick(report) {
 }
 
 /**
+ * Renderiza los indicadores en el DOM.
+ * @param {Object} stats - { total, pending, resolved, byType: {BARRIDO, MALEZA, RESIDUOS_SOLIDOS} }
+ */
+function renderIndicators(stats) {
+  const safe = (v) => (typeof v === "number" ? v : 0);
+  getById("total-count").textContent = safe(stats.total);
+  getById("pending-count").textContent = safe(stats.pending);
+  getById("resolved-count").textContent = safe(stats.resolved);
+  getById("type-barrido-count").textContent = safe(stats.byType?.BARRIDO);
+  getById("type-maleza-count").textContent = safe(stats.byType?.MALEZA);
+  getById("type-residuos-count").textContent = safe(
+    stats.byType?.RESIDUOS_SOLIDOS
+  );
+}
+
+/**
+ * Carga los indicadores: intenta endpoint de resumen y si falla calcula a partir de todos los reportes.
+ */
+async function loadIndicators() {
+  // Fallback: solicitar todos los reportes (size grande). Ajustar si backend limita.
+  try {
+    const resp = await fetchWithAuth(
+      `${API_BASE_URL}/reportes/supervisor/me?page=0&size=10000&sort=createdAt,desc`
+    );
+    if (!resp.ok)
+      throw new Error(
+        "No se pudieron obtener reportes del supervisor para cálculo de indicadores"
+      );
+    const page = await resp.json();
+    const list = page.content || [];
+
+    const stats = {
+      total: list.length,
+      pending: 0,
+      resolved: 0,
+      byType: { BARRIDO: 0, MALEZA: 0, RESIDUOS_SOLIDOS: 0 },
+    };
+
+    list.forEach((r) => {
+      // Estado: asumimos r.status o r.state indica si está resuelto ("RESUELTO") o pendiente
+      const status = (r.status || r.state || "").toString().toUpperCase();
+      if (status === "RESUELTO" || status === "RESOLVED") stats.resolved++;
+      else stats.pending++;
+
+      const t = (r.type || "").toString().toUpperCase();
+      if (t === "BARRIDO") stats.byType.BARRIDO++;
+      else if (t === "MALEZA") stats.byType.MALEZA++;
+      else if (t === "RESIDUOS_SOLIDOS") stats.byType.RESIDUOS_SOLIDOS++;
+    });
+
+    renderIndicators(stats);
+  } catch (error) {
+    console.error("Error calculando indicadores:", error);
+    // No bloquear UI; mostrar guion
+    renderIndicators({ total: 0, pending: 0, resolved: 0, byType: {} });
+  }
+}
+
+/**
  * Maneja el envío del formulario de asignación.
  * @param {Event} event
  */
@@ -213,6 +272,7 @@ async function handleAssignFormSubmit(event) {
     setTimeout(() => {
       toggleModal("assign-report-modal", false);
       loadIncomingReports();
+      loadIndicators(); // Actualizar indicadores
     }, 1500);
   } catch (error) {
     showFeedback("assign-modal-feedback", `Error: ${error.message}`, "error");
@@ -225,7 +285,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (getUserRole() === "SUPERVISOR") {
     loadIncomingReports(); // Cargar los reportes al iniciar
+    loadIndicators(); // Cargar los indicadores al iniciar
     loadWorkers(); // Cargar los trabajadores al iniciar
+  }
+
+  // Agregar listener para el botón de refrescar
+  const refreshBtn = getById("refresh-reports-btn");
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      currentPage = 0; // opcional: volver a primera página
+      loadIncomingReports();
+    });
   }
 
   // Configurar listeners del modal de Asignación

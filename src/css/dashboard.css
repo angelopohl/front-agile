@@ -84,6 +84,38 @@
     cursor: not-allowed;
 }
 
+/* Indicadores (dashboard supervisor) */
+
+.indicators-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+  align-items: stretch;
+}
+
+.indicator-card h4{
+  margin: 0 0 6px 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-align: center;
+}
+
+.indicator-card p{
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f6feb;
+  line-height: 1;
+  text-align: center;
+  word-break: break-word;
+}
+
+.indicator-card[data-kind="pending"] p{ color: #d97706; }
+.indicator-card[data-kind="resolved"] p{ color: #16a34a; }
+.indicator-card[data-kind="total"] p{ color: #1f6feb; }
+
 /* --- Estilos de Modal --- */
 
 .modal {

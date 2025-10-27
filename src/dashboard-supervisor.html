@@ -11,11 +11,49 @@
   <body class="dashboard-layout">
     <header class="header">
       <h2>Dashboard de Supervisor</h2>
-      <button id="logout-btn" class="btn-danger">Cerrar Sesión</button>
+      <div class="header-actions">
+        <button id="refresh-reports-btn" class="btn-secondary">
+          Refrescar Reportes
+        </button>
+        <button id="logout-btn" class="btn-danger">Cerrar Sesión</button>
+      </div>
     </header>
 
     <main class="main-content container">
       <h1>Bienvenido(a) Supervisor</h1>
+
+      <!-- Indicadores generales -->
+      <section
+        id="indicators"
+        class="indicators-grid"
+        aria-label="Indicadores de reportes"
+      >
+        <div class="indicator-card">
+          <h4>Total de reportes</h4>
+          <p id="total-count">—</p>
+        </div>
+        <div class="indicator-card">
+          <h4>Pendientes</h4>
+          <p id="pending-count">—</p>
+        </div>
+        <div class="indicator-card">
+          <h4>Resueltos</h4>
+          <p id="resolved-count">—</p>
+        </div>
+        <div class="indicator-card">
+          <h4>Barrido</h4>
+          <p id="type-barrido-count">—</p>
+        </div>
+        <div class="indicator-card">
+          <h4>Maleza</h4>
+          <p id="type-maleza-count">—</p>
+        </div>
+        <div class="indicator-card">
+          <h4>Residuos Sólidos</h4>
+          <p id="type-residuos-count">—</p>
+        </div>
+      </section>
+
       <div
         id="dashboard-feedback"
         class="feedback-message"
