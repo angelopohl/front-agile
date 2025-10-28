@@ -9,20 +9,11 @@
     <link rel="shortcut icon" href="./img/favicon.ico" type="image/x-icon" />
   </head>
   <body class="dashboard-layout">
-    <header class="header">
-      <h2>Dashboard de Supervisor</h2>
-      <div class="header-actions">
-        <button id="refresh-reports-btn" class="btn-secondary">
-          Refrescar Reportes
-        </button>
-        <button id="logout-btn" class="btn-danger">Cerrar Sesión</button>
-      </div>
-    </header>
+    <header class="header"></header>
 
     <main class="main-content container">
       <h1>Bienvenido(a) Supervisor</h1>
 
-      <!-- Indicadores generales -->
       <section
         id="indicators"
         class="indicators-grid"
@@ -53,98 +44,132 @@
           <p id="type-residuos-count">—</p>
         </div>
       </section>
+      <div class="reports-section">
+        <div
+          id="dashboard-feedback"
+          class="feedback-message"
+          style="display: none"
+        ></div>
 
-      <div
-        id="dashboard-feedback"
-        class="feedback-message"
-        style="display: none"
-      ></div>
+        <h3>Reportes</h3>
 
-      <h3>Reportes Pendientes de Asignación</h3>
+        <section class="filter-bar">
+          <form id="filter-form" class="filter-form-horizontal">
+            <div class="filter-group-horizontal">
+              <label class="group-label">Estado</label>
+              <div class="filter-options-inline">
+                <div class="filter-option">
+                  <input
+                    type="checkbox"
+                    id="filter-state-pending"
+                    name="state"
+                    value="PENDIENTE"
+                    checked
+                  />
+                  <label for="filter-state-pending">Pendiente</label>
+                </div>
+                <div class="filter-option">
+                  <input
+                    type="checkbox"
+                    id="filter-state-resolved"
+                    name="state"
+                    value="RESUELTO"
+                  />
+                  <label for="filter-state-resolved">Resuelto</label>
+                </div>
+              </div>
+            </div>
 
-      <div class="table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Tipo de Reporte</th>
-              <th>Ubicación</th>
-              <th>Foto</th>
-              <th>Acción</th>
-            </tr>
-          </thead>
-          <tbody id="reports-table-body">
-            <!-- Contenido dinámico cargado por supervisor.js -->
-            <tr>
-              <td colspan="4" style="text-align: center">
-                Cargando reportes pendientes...
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+            <div class="filter-group-horizontal">
+              <label class="group-label">Tipo de Reporte</label>
+              <div class="filter-options-inline">
+                <div class="filter-option">
+                  <input
+                    type="checkbox"
+                    id="filter-type-barrido"
+                    name="type"
+                    value="BARRIDO"
+                  />
+                  <label for="filter-type-barrido">Barrido</label>
+                </div>
+                <div class="filter-option">
+                  <input
+                    type="checkbox"
+                    id="filter-type-maleza"
+                    name="type"
+                    value="MALEZA"
+                  />
+                  <label for="filter-type-maleza">Maleza</label>
+                </div>
+                <div class="filter-option">
+                  <input
+                    type="checkbox"
+                    id="filter-type-residuos"
+                    name="type"
+                    value="RESIDUOS_SOLIDOS"
+                  />
+                  <label for="filter-type-residuos">R. Sólidos</label>
+                </div>
+              </div>
+            </div>
 
-      <div class="pagination-controls">
-        <button id="prev-page" class="btn-primary">Anterior</button>
-        <span id="page-info">Página 1 de 1</span>
-        <button id="next-page" class="btn-primary">Siguiente</button>
+            <div class="filter-group-horizontal">
+              <label class="group-label">Fecha de Creación</label>
+              <div class="filter-date-range-inline">
+                <div class="filter-date-group">
+                  <label for="filter-date-start">Desde:</label>
+                  <input type="date" id="filter-date-start" name="date_start" />
+                </div>
+                <div class="filter-date-group">
+                  <label for="filter-date-end">Hasta:</label>
+                  <input type="date" id="filter-date-end" name="date_end" />
+                </div>
+              </div>
+            </div>
+
+            <div class="filter-actions-horizontal">
+              <button type="submit" class="btn-primary">Aplicar</button>
+              <button type="reset" class="btn-secondary">Limpiar</button>
+            </div>
+          </form>
+        </section>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Tipo de Reporte</th>
+                <th>Ubicación</th>
+                <th>Foto</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="reports-table-body">
+              <tr>
+                <td colspan="4" style="text-align: center">
+                  Cargando reportes pendientes...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div
+            id="no-reports-message"
+            class="empty-state-message"
+            style="display: none"
+          >
+            No se encontraron reportes con los criterios aplicados.
+          </div>
+        </div>
+
+        <div class="pagination-controls">
+          <button id="prev-page" class="btn-primary">Anterior</button>
+          <span id="page-info">Página 1 de 1</span>
+          <button id="next-page" class="btn-primary">Siguiente</button>
+        </div>
       </div>
     </main>
 
-    <!-- MODAL: Asignar Reporte (Supervisor) -->
-    <div id="assign-report-modal" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>Asignar Tarea</h3>
-          <button id="close-assign-modal" class="close-btn">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div
-            id="assign-modal-feedback"
-            class="feedback-message"
-            style="display: none"
-          ></div>
-          <form id="assign-form">
-            <div class="form-group">
-              <label for="worker-select">Trabajador a Asignar:</label>
-              <select id="worker-select" required>
-                <!-- Opciones cargadas por supervisor.js -->
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="modal-report-type"
-                >Tipo de Reporte (Modificar si es necesario):</label
-              >
-              <select id="modal-report-type" required>
-                <option value="MALEZA">Maleza</option>
-                <option value="RESIDUOS_SOLIDOS">Residuos Sólidos</option>
-                <option value="BARRIDO">Barrido</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="assignment-comment"
-                >Comentario para el trabajador (Opcional):</label
-              >
-              <textarea
-                id="assignment-comment"
-                rows="3"
-                placeholder="Instrucciones específicas..."
-              ></textarea>
-            </div>
-            <div class="modal-actions">
-              <button type="submit" class="btn-primary">
-                Confirmar Asignación
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- Carga de la lógica específica y core -->
-    <script type="module" src="./utils/dom.js"></script>
-    <script type="module" src="./js/auth.js"></script>
-    <script type="module" src="./js/api.js"></script>
-    <script type="module" src="./js/supervisor.js"></script>
+    <div id="assign-report-modal" class="modal"></div>
   </body>
 </html>

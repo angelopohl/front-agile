@@ -3,90 +3,91 @@
 ---------------------------------------------------------------- */
 
 .dashboard-layout {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 .header {
-    background-color: var(--color-surface);
-    box-shadow: var(--shadow-md);
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .header h2 {
-    color: var(--color-primary);
-    margin: 0;
+  color: var(--color-primary);
+  margin: 0;
 }
 
 .header-actions button {
-    margin-left: 1rem;
+  margin-left: 1rem;
 }
 
 .main-content {
-    padding: 2rem;
-    flex-grow: 1;
+  padding: 2rem;
+  flex-grow: 1;
 }
 
 .full-width {
-  width: 100%;         /* ocupa todo el contenedor */
-  max-width: 800px;    /* límite opcional en píxeles */
+  width: 100%; /* ocupa todo el contenedor */
+  max-width: 800px; /* límite opcional en píxeles */
   box-sizing: border-box; /* incluye padding/border en el ancho */
-  min-width: 300px;    /* mínimo opcional */
-  resize: vertical;    /* sólo permitir redimensionar verticalmente */
+  min-width: 300px; /* mínimo opcional */
+  resize: vertical; /* sólo permitir redimensionar verticalmente */
 }
 
 /* --- Estilos de Tabla y Paginación --- */
 .table-container {
-    overflow-x: auto;
-    margin-top: 1.5rem;
-    background-color: var(--color-surface);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-md);
+  overflow-x: auto;
+  margin-top: 0;
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
 }
 
 .data-table {
-    width: 100%;
-    border-collapse: collapse;
+  width: 100%;
+  border-collapse: collapse;
 }
 
-.data-table th, .data-table td {
-    padding: 0.75rem;
-    text-align: left;
-    border-bottom: 1px solid #e9ecef;
+.data-table th,
+.data-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .data-table th {
-    background-color: #e9ecef;
-    font-weight: 600;
-    color: var(--color-text);
+  background-color: #e9ecef;
+  font-weight: 600;
+  color: var(--color-text);
 }
 
 .pagination-controls {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 1rem;
-    gap: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  gap: 1rem;
 }
 
 .pagination-controls button {
-    padding: 0.5rem 1rem;
-    background-color: var(--color-secondary);
-    color: var(--color-surface);
+  padding: 0.5rem 1rem;
+  background-color: var(--color-secondary);
+  color: var(--color-surface);
 }
 
 .pagination-controls button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Indicadores (dashboard supervisor) */
 
-.indicators-grid{
+.indicators-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
@@ -94,7 +95,7 @@
   align-items: stretch;
 }
 
-.indicator-card h4{
+.indicator-card h4 {
   margin: 0 0 6px 0;
   font-size: 0.9rem;
   color: #6b7280;
@@ -102,7 +103,7 @@
   text-align: center;
 }
 
-.indicator-card p{
+.indicator-card p {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 700;
@@ -112,94 +113,227 @@
   word-break: break-word;
 }
 
-.indicator-card[data-kind="pending"] p{ color: #d97706; }
-.indicator-card[data-kind="resolved"] p{ color: #16a34a; }
-.indicator-card[data-kind="total"] p{ color: #1f6feb; }
+.indicator-card[data-kind="pending"] p {
+  color: #d97706;
+}
+.indicator-card[data-kind="resolved"] p {
+  color: #16a34a;
+}
+.indicator-card[data-kind="total"] p {
+  color: #1f6feb;
+}
 
 /* --- Estilos de Modal --- */
-
+/* ... (Tu CSS de modal sin cambios) ... */
 .modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
-    display: none; /* Inicialmente oculto */
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    overflow-y: auto;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: none; /* Inicialmente oculto */
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  overflow-y: auto;
 }
 
 .modal.open {
-    display: flex;
+  display: flex;
 }
 
 .modal-content {
-    background-color: var(--color-surface);
-    padding: 2rem;
-    border-radius: var(--border-radius);
-    width: 90%;
-    max-width: 600px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); 
-    position: relative;
-    animation: fadeIn 0.3s ease-out;
+  background-color: var(--color-surface);
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  position: relative;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.5rem; 
-    border-bottom: 1px solid #e9ecef; /* La línea gris separadora */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e9ecef; /* La línea gris separadora */
 }
 
 .modal-header h3 {
-    margin: 0;
-    color: var(--color-primary);
-    font-size: 1.3rem; 
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 1.3rem;
 }
 
 .close-btn {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    line-height: 1;
-    color: var(--color-secondary);
-    transition: color 0.2s;
-    padding: 0;
-    box-shadow: none;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-secondary);
+  transition: color 0.2s;
+  padding: 0;
+  box-shadow: none;
 }
 
 .close-btn:hover {
-    color: var(--color-danger);
+  color: var(--color-danger);
 }
 
 .modal-body .form-group {
-    margin-bottom: 1rem;
-    display: grid; 
-    grid-template-columns: 1fr 2fr;   
-    align-items: center; 
-    gap: 1rem; 
+  margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  align-items: center;
+  gap: 1rem;
 }
 
 .modal-actions {
-    margin-top: 1.5rem;
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
 }
 
 /* Animación para el modal */
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ----------------------------------------------------------------
+   NUEVOS ESTILOS: Filtro Horizontal Simple
+----------------------------------------------------------------
+*/
+
+.filter-bar {
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem; /* Separación de la tabla */
+}
+
+.filter-form-horizontal {
+  display: flex;
+  flex-wrap: wrap; /* Permite que los filtros pasen abajo en pantallas chicas */
+  gap: 1.5rem;
+  align-items: flex-end; /* Alinea todo en la parte inferior */
+}
+
+.filter-group-horizontal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* Espacio entre el label y los inputs */
+
+  /* MODIFICADO: Esto hace que los 3 grupos crezcan para llenar el espacio */
+  flex-grow: 1;
+}
+
+.filter-group-horizontal .group-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.filter-options-inline {
+  display: flex;
+  gap: 1rem; /* Espacio entre checkboxes */
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem; /* Espacio entre el check y su label */
+}
+
+.filter-option label {
+  font-size: 0.95rem;
+  color: var(--color-secondary);
+  white-space: nowrap; /* Evita que "R. Sólidos" se rompa */
+}
+
+.filter-option input[type="checkbox"] {
+  margin: 0;
+  width: 1.1em;
+  height: 1.1em;
+  accent-color: var(--color-primary);
+}
+
+.filter-date-range-inline {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.filter-date-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.filter-date-group label {
+  font-size: 0.85rem;
+  color: var(--color-secondary);
+}
+
+.filter-date-group input[type="date"] {
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.filter-actions-horizontal {
+  display: flex;
+  gap: 0.5rem;
+
+  /* MODIFICADO: Restaurado para empujar los botones a la derecha */
+  margin-left: auto;
+}
+
+.empty-state-message {
+  text-align: center;
+  padding: 2rem;
+  color: var(--color-secondary);
+}
+
+/* Responsividad */
+@media (max-width: 1200px) {
+  .filter-form-horizontal {
+    gap: 1rem;
+  }
+  .filter-actions-horizontal {
+    margin-left: 0;
+    width: 100%;
+  }
+  .filter-actions-horizontal button {
+    flex-grow: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .filter-options-inline {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+  .filter-date-range-inline {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .filter-group-horizontal {
+    /* Evita que un solo grupo crezca demasiado en móvil */
+    flex-grow: 0;
+  }
 }

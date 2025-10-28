@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------
-// supervisor.js: Lógica del Dashboard del Supervisor (CORREGIDO)
+// supervisor.js: Lógica del Dashboard del Supervisor (CORREGIDO Y CON FILTROS)
 // ----------------------------------------------------------------
 
 import { checkAuthAndRedirect, API_BASE_URL, getUserRole } from "./auth.js";
@@ -11,16 +11,12 @@ import {
   hideFeedback,
 } from "../utils/dom.js";
 
-// CAMBIO: Eliminamos los datos mock. La información vendrá de la API.
-// let mockIncomingReports = [...];
-// const mockWorkers = [...];
-
-let currentReportToAssign = null; // Guardará el reporte seleccionado para asignar
-let allWorkers = []; // Guardará la lista de trabajadores obtenida de la API
+let currentReportToAssign = null;
+let allWorkers = [];
 
 const REPORTS_PER_PAGE = 10;
-let currentPage = 0; // CAMBIO: La paginación ahora es 0-indexada como en ciudadano.js
-let totalPages = 1; // CAMBIO: Se actualizará desde la API
+let currentPage = 0;
+let totalPages = 1;
 
 /**
  * Formatea la fecha y hora.
@@ -38,22 +34,72 @@ function formatDateTimeWithSeconds(input) {
   )}`;
 }
 
+// NUEVO: Función para leer los filtros del formulario
+/**
+ * Obtiene los parámetros de filtro del formulario y los convierte en un query string.
+ * @returns {string} Un string de parámetros de URL (ej. "state=PENDIENTE&type=BARRIDO")
+ */
+function getFilterParams() {
+  const params = new URLSearchParams();
+
+  // 1. Filtro por Estado (AC 2)
+  const stateCheckboxes = document.querySelectorAll(
+    'input[name="state"]:checked'
+  );
+  stateCheckboxes.forEach((cb) => {
+    params.append("state", cb.value); // API recibirá state=PENDIENTE, state=RESUELTO, etc.
+  });
+
+  // 2. Filtro por Tipo (AC 3)
+  const typeCheckboxes = document.querySelectorAll(
+    'input[name="type"]:checked'
+  );
+  typeCheckboxes.forEach((cb) => {
+    params.append("type", cb.value); // API recibirá type=BARRIDO, type=MALEZA, etc.
+  });
+
+  // 3. Filtro por Fecha (AC 4)
+  const dateStart = getById("filter-date-start").value;
+  const dateEnd = getById("filter-date-end").value;
+
+  if (dateStart) {
+    // Asumimos que la API espera 'YYYY-MM-DD'.
+    // Si la API requiere un timestamp T00:00:00, se ajusta aquí.
+    params.append("date_start", dateStart);
+  }
+  if (dateEnd) {
+    params.append("date_end", dateEnd);
+  }
+
+  return params.toString();
+}
+
 /**
  * Dibuja la tabla de reportes en el DOM.
  * @param {Array<Object>} reports - Lista de reportes de la página actual.
  */
 function renderReports(reports) {
   const tableBody = getById("reports-table-body");
-  if (!tableBody) return;
+  // MODIFICADO: Referencias para el mensaje de "no encontrados" (AC 7)
+  const noReportsMessage = getById("no-reports-message");
+  const dataTable = document.querySelector(".data-table"); // La tabla <table>
 
-  // CAMBIO: Ya no se usa slice. El backend ya nos da la página correcta.
-  tableBody.innerHTML = "";
+  if (!tableBody || !noReportsMessage || !dataTable) return;
+
+  // MODIFICADO: Lógica para mostrar/ocultar tabla vs mensaje (AC 7)
+  if (reports.length === 0) {
+    tableBody.innerHTML = ""; // Limpiar por si acaso
+    dataTable.style.display = "none"; // Ocultar la tabla
+    noReportsMessage.style.display = "block"; // Mostrar el mensaje
+  } else {
+    dataTable.style.display = ""; // Restaurar display (table)
+    noReportsMessage.style.display = "none"; // Ocultar el mensaje
+    tableBody.innerHTML = ""; // Limpiar la tabla antes de rellenar
+  }
 
   reports.forEach((report) => {
     const row = tableBody.insertRow();
-    // Suponiendo que el backend devuelve un objeto 'location' con 'address'
     const locationAddress = report.location?.address || "No especificada";
-    // Suponiendo que el backend devuelve 'photos' como un array de URLs
     const photoUrl =
       report.photos && report.photos.length > 0
         ? report.photos[0]
@@ -77,13 +123,12 @@ function renderReports(reports) {
       </td>
     `;
 
-    // CAMBIO: Guardar el objeto de reporte completo en el botón para fácil acceso
     row
       .querySelector(".assign-btn")
       .addEventListener("click", () => handleAssignButtonClick(report));
   });
 
-  // CAMBIO: Actualizar controles de paginación con datos de la API
+  // Actualizar controles de paginación
   const pageInfoEl = getById("page-info");
   if (pageInfoEl) {
     pageInfoEl.textContent = `Página ${currentPage + 1} de ${totalPages}`;
@@ -93,18 +138,21 @@ function renderReports(reports) {
 }
 
 /**
- * Carga los reportes desde la API.
+ * Carga los reportes desde la API, AHORA CON FILTROS.
  */
 async function loadIncomingReports() {
+  // NUEVO: Obtener los parámetros de filtro
+  const filterQuery = getFilterParams();
+
   try {
-    // CAMBIO: Se llama a la API real. Asumimos que el endpoint para el supervisor es este.
-    const response = await fetchWithAuth(
-      `${API_BASE_URL}/reportes/supervisor/me?page=${currentPage}&size=${REPORTS_PER_PAGE}&sort=createdAt,desc`
-    );
+    // MODIFICADO: Se añaden los filtros a la URL. El '&' al final une los params.
+    const url = `${API_BASE_URL}/reportes/supervisor/me?page=${currentPage}&size=${REPORTS_PER_PAGE}&sort=createdAt,desc&${filterQuery}`;
+
+    const response = await fetchWithAuth(url);
     const pageData = await response.json();
 
     if (pageData && pageData.content) {
-      totalPages = pageData.totalPages; // Actualizamos el total de páginas
+      totalPages = pageData.totalPages;
       renderReports(pageData.content);
     } else {
       renderReports([]);
@@ -114,9 +162,10 @@ async function loadIncomingReports() {
     console.error("Error al cargar reportes:", error);
     showFeedback(
       "dashboard-feedback",
-      "Error al cargar los reportes pendientes.",
+      "Error al cargar los reportes.",
       "error"
     );
+    renderReports([]); // MODIFICADO: Mostrar "no reportes" en caso de error
   }
 }
 
@@ -125,7 +174,6 @@ async function loadIncomingReports() {
  */
 async function loadWorkers() {
   try {
-    // CAMBIO: Endpoint real para obtener trabajadores. Ajustar si es diferente.
     const response = await fetchWithAuth(`${API_BASE_URL}/trabajadores`);
     allWorkers = await response.json();
   } catch (error) {
@@ -135,7 +183,7 @@ async function loadWorkers() {
       "No se pudo cargar la lista de trabajadores.",
       "error"
     );
-    allWorkers = []; // Asegurarse que está vacío en caso de error
+    allWorkers = [];
   }
 }
 
@@ -144,18 +192,16 @@ async function loadWorkers() {
  * @param {Object} report - El objeto completo del reporte a asignar.
  */
 function handleAssignButtonClick(report) {
-  currentReportToAssign = report; // Guardamos el reporte actual
+  currentReportToAssign = report;
 
-  // Rellenar el modal
   getById("modal-report-type").value = currentReportToAssign.type;
   const workerSelect = getById("worker-select");
   workerSelect.innerHTML = '<option value="">Seleccione un Trabajador</option>';
 
-  // CAMBIO: Usar la lista de trabajadores real (`allWorkers`)
   allWorkers.forEach((worker) => {
     const option = document.createElement("option");
-    option.value = worker.id; // Asumimos que cada trabajador tiene un 'id'
-    option.textContent = worker.name + " " + worker.lastname; // Asumimos 'name' y 'lastname'
+    option.value = worker.id;
+    option.textContent = worker.name + " " + worker.lastname;
     workerSelect.appendChild(option);
   });
 
@@ -183,11 +229,17 @@ function renderIndicators(stats) {
  * Carga los indicadores: intenta endpoint de resumen y si falla calcula a partir de todos los reportes.
  */
 async function loadIndicators() {
-  // Fallback: solicitar todos los reportes (size grande). Ajustar si backend limita.
+  // NOTA: Esta función de indicadores también se podría beneficiar de los filtros,
+  // pero la HU dice "filtrar los indicadores por fecha, tipo y estado."
+  // Por ahora, esta función sigue cargando el total general.
+  // Se podría modificar para que getFilterParams() también afecte la URL de aquí.
+
   try {
-    const resp = await fetchWithAuth(
-      `${API_BASE_URL}/reportes/supervisor/me?page=0&size=10000&sort=createdAt,desc`
-    );
+    // NUEVO: Usamos los mismos filtros para los indicadores
+    const filterQuery = getFilterParams();
+    const url = `${API_BASE_URL}/reportes/supervisor/me?page=0&size=10000&sort=createdAt,desc&${filterQuery}`;
+
+    const resp = await fetchWithAuth(url);
     if (!resp.ok)
       throw new Error(
         "No se pudieron obtener reportes del supervisor para cálculo de indicadores"
@@ -196,14 +248,13 @@ async function loadIndicators() {
     const list = page.content || [];
 
     const stats = {
-      total: list.length,
+      total: list.length, // OJO: page.totalElements sería mejor si la API lo devuelve
       pending: 0,
       resolved: 0,
       byType: { BARRIDO: 0, MALEZA: 0, RESIDUOS_SOLIDOS: 0 },
     };
 
     list.forEach((r) => {
-      // Estado: asumimos r.status o r.state indica si está resuelto ("RESUELTO") o pendiente
       const status = (r.status || r.state || "").toString().toUpperCase();
       if (status === "RESUELTO" || status === "RESOLVED") stats.resolved++;
       else stats.pending++;
@@ -217,7 +268,6 @@ async function loadIndicators() {
     renderIndicators(stats);
   } catch (error) {
     console.error("Error calculando indicadores:", error);
-    // No bloquear UI; mostrar guion
     renderIndicators({ total: 0, pending: 0, resolved: 0, byType: {} });
   }
 }
@@ -230,7 +280,7 @@ async function handleAssignFormSubmit(event) {
   event.preventDefault();
 
   const workerId = getById("worker-select").value;
-  const newType = getById("modal-report-type").value; // Supervisor puede corregir el tipo
+  const newType = getById("modal-report-type").value;
   const supervisorComment = getById("assignment-comment").value;
 
   if (!workerId) {
@@ -250,7 +300,6 @@ async function handleAssignFormSubmit(event) {
   };
 
   try {
-    // CAMBIO: Llamada real a la API para asignar la tarea
     const response = await fetchWithAuth(`${API_BASE_URL}/tarea`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -268,11 +317,10 @@ async function handleAssignFormSubmit(event) {
       "success"
     );
 
-    // CAMBIO: Recargar la lista de reportes para que el asignado desaparezca
     setTimeout(() => {
       toggleModal("assign-report-modal", false);
-      loadIncomingReports();
-      loadIndicators(); // Actualizar indicadores
+      loadIncomingReports(); // Recargar reportes (ya filtrados)
+      loadIndicators(); // Recargar indicadores (ya filtrados)
     }, 1500);
   } catch (error) {
     showFeedback("assign-modal-feedback", `Error: ${error.message}`, "error");
@@ -284,17 +332,20 @@ document.addEventListener("DOMContentLoaded", () => {
   checkAuthAndRedirect("SUPERVISOR");
 
   if (getUserRole() === "SUPERVISOR") {
-    loadIncomingReports(); // Cargar los reportes al iniciar
-    loadIndicators(); // Cargar los indicadores al iniciar
-    loadWorkers(); // Cargar los trabajadores al iniciar
+    // Las llamadas se hacen al inicio. loadIncomingReports usará los filtros
+    // por defecto (Pendiente=checked)
+    loadIncomingReports();
+    loadIndicators();
+    loadWorkers();
   }
 
-  // Agregar listener para el botón de refrescar
+  // Listener para el botón de refrescar
   const refreshBtn = getById("refresh-reports-btn");
   if (refreshBtn) {
     refreshBtn.addEventListener("click", () => {
-      currentPage = 0; // opcional: volver a primera página
+      // Refrescar CON los filtros actuales
       loadIncomingReports();
+      loadIndicators();
     });
   }
 
@@ -308,14 +359,38 @@ document.addEventListener("DOMContentLoaded", () => {
   getById("prev-page").addEventListener("click", () => {
     if (currentPage > 0) {
       currentPage--;
-      loadIncomingReports();
+      loadIncomingReports(); // Carga la pág anterior CON filtros
     }
   });
 
   getById("next-page").addEventListener("click", () => {
     if (currentPage < totalPages - 1) {
       currentPage++;
-      loadIncomingReports();
+      loadIncomingReports(); // Carga la pág siguiente CON filtros
     }
   });
+
+  // --- NUEVO: Listeners para el Formulario de Filtros ---
+  const filterForm = getById("filter-form");
+  if (filterForm) {
+    // Al hacer click en "Aplicar" (submit)
+    filterForm.addEventListener("submit", (event) => {
+      event.preventDefault(); // Evitar que la página se recargue
+      currentPage = 0; // Al aplicar filtros, volvemos a la página 1
+      loadIncomingReports();
+      loadIndicators(); // Actualizar indicadores con los filtros
+    });
+
+    // Al hacer click en "Limpiar" (reset)
+    filterForm.addEventListener("reset", () => {
+      // El reset del HTML restaura los valores por defecto (Pendiente=checked)
+      // Esperamos un instante para que el DOM se actualice
+      // antes de leer los valores (ahora por defecto) y recargar.
+      setTimeout(() => {
+        currentPage = 0;
+        loadIncomingReports();
+        loadIndicators();
+      }, 0);
+    });
+  }
 });
