@@ -78,6 +78,7 @@ if (detectBtn) {
     detectBtn.textContent = "Detectando...";
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
+        console.log("Coordenadas crudas recibidas:", pos.coords);
         const lat = pos.coords.latitude.toFixed(6);
         const lon = pos.coords.longitude.toFixed(6);
         try {
@@ -102,7 +103,11 @@ if (detectBtn) {
           "error"
         );
       },
-      { timeout: 10000 }
+      {
+        enableHighAccuracy: true, // <-- ¡Esta es la línea clave! Pide la máxima precisión (GPS).
+        timeout: 10000, // Tiempo máximo de espera para una respuesta.
+        maximumAge: 0,
+      }
     );
   });
 }

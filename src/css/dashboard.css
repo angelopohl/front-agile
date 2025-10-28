@@ -203,3 +203,108 @@
         transform: translateY(0);
     }
 }
+
+/* ----------------------------------------------------------------
+   NUEVOS ESTILOS: Filtro Horizontal Simple
+---------------------------------------------------------------- */
+.filter-bar {
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem; /* Separación de la tabla */
+}
+
+.filter-form-horizontal {
+  display: flex;
+  flex-wrap: wrap; /* Permite que los filtros pasen abajo en pantallas chicas */
+  gap: 1.5rem;
+  align-items: flex-end; /* Alinea todo en la parte inferior */
+}
+
+.filter-group-horizontal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* Espacio entre el label y los inputs */
+  flex-grow: 1; /* Esto hace que los grupos crezcan para llenar el espacio */
+}
+
+.filter-group-horizontal .group-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.filter-options-inline {
+  display: flex;
+  gap: 1rem; /* Espacio entre checkboxes */
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem; /* Espacio entre el check y su label */
+}
+
+.filter-option label {
+  font-size: 0.95rem;
+  color: var(--color-secondary);
+  white-space: nowrap; /* Evita que "R. Sólidos" se rompa */
+}
+
+.filter-option input[type="checkbox"] {
+  margin: 0;
+  width: 1.1em;
+  height: 1.1em;
+  accent-color: var(--color-primary);
+}
+
+.filter-date-range-inline {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.filter-date-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.filter-date-group label {
+  font-size: 0.85rem;
+  color: var(--color-secondary);
+}
+
+.filter-date-group input[type="date"] {
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.filter-actions-horizontal {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto; /* Empuja los botones a la derecha */
+}
+
+.empty-state-message {
+  text-align: center;
+  padding: 2rem;
+  color: var(--color-secondary);
+}
+
+/* Responsividad */
+@media (max-width: 1200px) {
+  .filter-form-horizontal {
+    gap: 1rem;
+  }
+  .filter-actions-horizontal {
+    margin-left: 0;
+    width: 100%;
+  }
+  .filter-actions-horizontal button {
+    flex-grow: 1;
+  }
+}

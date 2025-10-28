@@ -82,42 +82,80 @@ function renderReports(reports) {
       .querySelector(".assign-btn")
       .addEventListener("click", () => handleAssignButtonClick(report));
   });
-
-  // CAMBIO: Actualizar controles de paginación con datos de la API
-  const pageInfoEl = getById("page-info");
-  if (pageInfoEl) {
-    pageInfoEl.textContent = `Página ${currentPage + 1} de ${totalPages}`;
-  }
-  getById("prev-page").disabled = currentPage === 0;
-  getById("next-page").disabled = currentPage >= totalPages - 1;
 }
 
 /**
  * Carga los reportes desde la API.
  */
 async function loadIncomingReports() {
+  const tableBody = getById("reports-table-body");
+  tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center;">Cargando reportes...</td></tr>`;
+
+  // 1. Construir los parámetros base de la URL
+  const params = new URLSearchParams();
+  params.append("page", currentPage);
+  params.append("size", REPORTS_PER_PAGE);
+  params.append("sort", "createdAt,desc");
+
+  // 2. Recolectar valores de checkboxes de ESTADO
+  const checkedStates = document.querySelectorAll(
+    'input[name="estados"]:checked'
+  );
+  checkedStates.forEach((checkbox) => {
+    // 'estados' debe coincidir con el @RequestParam del backend
+    params.append("estados", checkbox.value);
+  });
+
+  // 3. Recolectar valores de checkboxes de TIPO
+  const checkedTypes = document.querySelectorAll('input[name="tipos"]:checked');
+  checkedTypes.forEach((checkbox) => {
+    // 'tipos' debe coincidir con el @RequestParam del backend
+    params.append("tipos", checkbox.value);
+  });
+
+  // 4. Recolectar valores de las FECHAS
+  const startDate = getById("filter-date-start").value;
+  const endDate = getById("filter-date-end").value;
+  if (startDate) {
+    // 'fechaInicio' debe coincidir con el @RequestParam del backend
+    params.append("fechaInicio", startDate);
+  }
+  if (endDate) {
+    // 'fechaFin' debe coincidir con el @RequestParam del backend
+    params.append("fechaFin", endDate);
+  }
+
   try {
-    // CAMBIO: Se llama a la API real. Asumimos que el endpoint para el supervisor es este.
     const response = await fetchWithAuth(
-      `${API_BASE_URL}/reportes/supervisor/me?page=${currentPage}&size=${REPORTS_PER_PAGE}&sort=createdAt,desc`
+      `${API_BASE_URL}/reportes/supervisor/me?${params.toString()}`
     );
     const pageData = await response.json();
 
-    if (pageData && pageData.content) {
-      totalPages = pageData.totalPages; // Actualizamos el total de páginas
+    if (pageData && pageData.content && pageData.content.length > 0) {
+      totalPages = pageData.totalPages;
       renderReports(pageData.content);
     } else {
-      renderReports([]);
       totalPages = 1;
+      currentPage = 0;
+      tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center;">No se encontraron reportes con los criterios aplicados.</td></tr>`;
     }
   } catch (error) {
     console.error("Error al cargar reportes:", error);
     showFeedback(
       "dashboard-feedback",
-      "Error al cargar los reportes pendientes.",
+      "Error al cargar los reportes.",
       "error"
     );
+    tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: red;">Error al cargar los reportes.</td></tr>`;
   }
+
+  // Actualizar controles de paginación
+  const pageInfoEl = getById("page-info");
+  if (pageInfoEl) {
+    pageInfoEl.textContent = `Página ${currentPage + 1} de ${totalPages}`;
+  }
+  getById("prev-page").disabled = currentPage === 0;
+  getById("next-page").disabled = currentPage >= totalPages - 1;
 }
 
 /**
@@ -168,7 +206,7 @@ function handleAssignButtonClick(report) {
  * @param {Object} stats - { total, pending, resolved, byType: {BARRIDO, MALEZA, RESIDUOS_SOLIDOS} }
  */
 function renderIndicators(stats) {
-  const safe = (v) => (typeof v === "number" ? v : 0);
+  const safe = (v) => (v !== null && v !== undefined ? v : "—");
   getById("total-count").textContent = safe(stats.total);
   getById("pending-count").textContent = safe(stats.pending);
   getById("resolved-count").textContent = safe(stats.resolved);
@@ -183,42 +221,51 @@ function renderIndicators(stats) {
  * Carga los indicadores: intenta endpoint de resumen y si falla calcula a partir de todos los reportes.
  */
 async function loadIndicators() {
-  // Fallback: solicitar todos los reportes (size grande). Ajustar si backend limita.
+  // 1. Crear un objeto URLSearchParams, igual que en loadIncomingReports
+  const params = new URLSearchParams();
+
+  // 2. Recolectar valores de los checkboxes de ESTADO
+  const checkedStates = document.querySelectorAll(
+    'input[name="estados"]:checked'
+  );
+  checkedStates.forEach((checkbox) => {
+    params.append("estados", checkbox.value);
+  });
+
+  // 3. Recolectar valores de los checkboxes de TIPO
+  const checkedTypes = document.querySelectorAll('input[name="tipos"]:checked');
+  checkedTypes.forEach((checkbox) => {
+    params.append("tipos", checkbox.value);
+  });
+
+  // 4. Recolectar valores de las FECHAS
+  const startDate = getById("filter-date-start").value;
+  const endDate = getById("filter-date-end").value;
+  if (startDate) {
+    params.append("fechaInicio", startDate);
+  }
+  if (endDate) {
+    params.append("fechaFin", endDate);
+  }
+
   try {
-    const resp = await fetchWithAuth(
-      `${API_BASE_URL}/reportes/supervisor/me?page=0&size=10000&sort=createdAt,desc`
+    // 5. Llamar al nuevo endpoint de resumen con los filtros
+    const response = await fetchWithAuth(
+      `${API_BASE_URL}/reportes/supervisor/summary?${params.toString()}`
     );
-    if (!resp.ok)
+    if (!response.ok) {
       throw new Error(
-        "No se pudieron obtener reportes del supervisor para cálculo de indicadores"
+        "La respuesta del servidor para los indicadores no fue exitosa."
       );
-    const page = await resp.json();
-    const list = page.content || [];
+    }
+    const summaryData = await response.json();
 
-    const stats = {
-      total: list.length,
-      pending: 0,
-      resolved: 0,
-      byType: { BARRIDO: 0, MALEZA: 0, RESIDUOS_SOLIDOS: 0 },
-    };
-
-    list.forEach((r) => {
-      // Estado: asumimos r.status o r.state indica si está resuelto ("RESUELTO") o pendiente
-      const status = (r.status || r.state || "").toString().toUpperCase();
-      if (status === "RESUELTO" || status === "RESOLVED") stats.resolved++;
-      else stats.pending++;
-
-      const t = (r.type || "").toString().toUpperCase();
-      if (t === "BARRIDO") stats.byType.BARRIDO++;
-      else if (t === "MALEZA") stats.byType.MALEZA++;
-      else if (t === "RESIDUOS_SOLIDOS") stats.byType.RESIDUOS_SOLIDOS++;
-    });
-
-    renderIndicators(stats);
+    // 6. Usar la función existente para renderizar los datos
+    renderIndicators(summaryData);
   } catch (error) {
-    console.error("Error calculando indicadores:", error);
-    // No bloquear UI; mostrar guion
-    renderIndicators({ total: 0, pending: 0, resolved: 0, byType: {} });
+    console.error("Error al cargar indicadores:", error);
+    // En caso de error, resetea los indicadores a un estado neutral
+    renderIndicators({ total: "—", pending: "—", resolved: "—", byType: {} });
   }
 }
 
@@ -303,6 +350,29 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleModal("assign-report-modal", false)
   );
   getById("assign-form").addEventListener("submit", handleAssignFormSubmit);
+
+  // 🚀 NUEVO: Agregar listeners para el formulario de filtros
+  const filterForm = getById("filter-form");
+  if (filterForm) {
+    // Acción para el botón "Aplicar Filtros" (type="submit")
+    filterForm.addEventListener("submit", (e) => {
+      e.preventDefault(); // Evita que la página se recargue
+      currentPage = 0; // Siempre volver a la primera página al filtrar
+      loadIncomingReports();
+      loadIndicators(); // <-- AÑADIR AQUÍ
+    });
+
+    // Acción para el botón "Limpiar" (type="reset")
+    filterForm.addEventListener("reset", () => {
+      // Usamos un pequeño delay para asegurar que la recarga se pida
+      // después de que el formulario se haya limpiado visualmente.
+      setTimeout(() => {
+        currentPage = 0;
+        loadIncomingReports();
+        loadIndicators(); // <-- AÑADIR AQUÍ
+      }, 0);
+    });
+  }
 
   // Configurar paginación
   getById("prev-page").addEventListener("click", () => {
