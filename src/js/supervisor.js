@@ -422,6 +422,7 @@ document.addEventListener("DOMContentLoaded", () => {
     refreshBtn.addEventListener("click", () => {
       currentPage = 0; // opcional: volver a primera página
       loadHistoryReports();
+      loadIndicators();
     });
   }
 
