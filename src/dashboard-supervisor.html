@@ -60,8 +60,6 @@
         style="display: none"
       ></div>
 
-      <h3>Reportes Pendientes de Asignación</h3>
-
       <h3>Filtros de Búsqueda</h3>
 
       <section class="filter-bar">
@@ -140,6 +138,9 @@
           <div class="filter-actions-horizontal">
             <button type="submit" class="btn-primary">Aplicar Filtros</button>
             <button type="reset" class="btn-secondary">Limpiar</button>
+            <button type="button" id="export-pdf-btn" class="btn-success">
+              Exportar a PDF
+            </button>
           </div>
         </form>
       </section>
@@ -148,10 +149,15 @@
         <table class="data-table">
           <thead>
             <tr>
+              <th>ID</th>
               <th>Fecha</th>
               <th>Tipo de Reporte</th>
               <th>Ubicación</th>
-              <th>Foto</th>
+              <th>Descripción</th>
+              <th>Estado</th>
+              <th>Asignado a</th>
+              <th>Foto Reporte</th>
+              <th>Foto Evidencia</th>
               <th>Acción</th>
             </tr>
           </thead>

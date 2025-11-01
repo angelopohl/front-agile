@@ -51,15 +51,26 @@ function renderReports(reports) {
 
   reports.forEach((report) => {
     const row = tableBody.insertRow();
+    const id = report.id || "N/A"; // CAMBIO: Mostrar ID del reporte
     // Suponiendo que el backend devuelve un objeto 'location' con 'address'
     const locationAddress = report.location?.address || "No especificada";
+    const description = report.description || "No especificada";
+    const status = report.status || "Desconocido";
+    const assignedTo = report.assignedTo
+      ? `${report.assignedTo}`
+      : "No asignado";
     // Suponiendo que el backend devuelve 'photos' como un array de URLs
     const photoUrl =
       report.photos && report.photos.length > 0
         ? report.photos[0]
         : "https://placehold.co/150x150?text=Sin+Imagen";
+    const evidencePhotoUrl =
+      report.evidence && report.evidence.length > 0
+        ? report.evidence[0]
+        : "https://placehold.co/150x150?text=Sin+Evidencia";
 
     row.innerHTML = `
+      <td>${id}</td>
       <td>${formatDateTimeWithSeconds(report.createdAt)}</td>
       <td>${
         report.type === "RESIDUOS_SOLIDOS"
@@ -69,9 +80,15 @@ function renderReports(reports) {
           : "Maleza"
       }</td>
       <td>${locationAddress}</td>
+      <td>${description}</td>
+      <td>${status}</td>
+      <td>${assignedTo}</td>
       <td><img src="${photoUrl}" alt="Foto del reporte" style="width:150px; height:150px; border-radius:4px; object-fit: cover;"></td>
+      <td><img src="${evidencePhotoUrl}" alt="Foto de evidencia" style="width:150px; height:150px; border-radius:4px; object-fit: cover;"></td>
       <td>
-        <button class="btn-primary btn-sm assign-btn">
+        <button class="btn-primary btn-sm assign-btn" ${
+          report.assignedTo ? "disabled" : ""
+        }>
           Asignar Reporte
         </button>
       </td>
@@ -87,9 +104,9 @@ function renderReports(reports) {
 /**
  * Carga los reportes desde la API.
  */
-async function loadIncomingReports() {
+async function loadHistoryReports() {
   const tableBody = getById("reports-table-body");
-  tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center;">Cargando reportes...</td></tr>`;
+  tableBody.innerHTML = `<tr><td colspan="10" style="text-align: center;">Cargando reportes...</td></tr>`;
 
   // 1. Construir los parámetros base de la URL
   const params = new URLSearchParams();
@@ -137,7 +154,7 @@ async function loadIncomingReports() {
     } else {
       totalPages = 1;
       currentPage = 0;
-      tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center;">No se encontraron reportes con los criterios aplicados.</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="10" style="text-align: center;">No se encontraron reportes con los criterios aplicados.</td></tr>`;
     }
   } catch (error) {
     console.error("Error al cargar reportes:", error);
@@ -146,7 +163,7 @@ async function loadIncomingReports() {
       "Error al cargar los reportes.",
       "error"
     );
-    tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: red;">Error al cargar los reportes.</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: red;">Error al cargar los reportes.</td></tr>`;
   }
 
   // Actualizar controles de paginación
@@ -174,6 +191,69 @@ async function loadWorkers() {
       "error"
     );
     allWorkers = []; // Asegurarse que está vacío en caso de error
+  }
+}
+
+async function exportPdf() {
+  // 1. Crear un objeto URLSearchParams con los filtros actuales
+  const params = new URLSearchParams();
+
+  const checkedStates = document.querySelectorAll(
+    'input[name="estados"]:checked'
+  );
+  checkedStates.forEach((cb) => params.append("estados", cb.value));
+
+  const checkedTypes = document.querySelectorAll('input[name="tipos"]:checked');
+  checkedTypes.forEach((cb) => params.append("tipos", cb.value));
+
+  const startDate = getById("filter-date-start").value;
+  if (startDate) params.append("fechaInicio", startDate);
+
+  const endDate = getById("filter-date-end").value;
+  if (endDate) params.append("fechaFin", endDate); // 2. Construir la URL completa como un string
+
+  const exportUrl = `${API_BASE_URL}/reportes/supervisor/export/pdf?${params.toString()}`; // 3. Abrir la URL en una nueva pestaña. El navegador hará el resto.
+
+  // Opcional: Mostrar un mensaje de "Cargando..." al usuario
+  showFeedback(
+    "dashboard-feedback",
+    "Generando PDF, por favor espera...",
+    "info"
+  );
+
+  try {
+    // 3. Llamar a la API usando fetchWithAuth para enviar el token
+    const response = await fetchWithAuth(exportUrl);
+
+    if (!response.ok) {
+      throw new Error(
+        "No se pudo generar el PDF. El servidor respondió con un error."
+      );
+    }
+
+    // 4. Convertir la respuesta en un "blob" (un tipo de archivo)
+    const pdfBlob = await response.blob();
+
+    // 5. Crear una URL temporal en el navegador para este archivo
+    const blobUrl = URL.createObjectURL(pdfBlob);
+
+    // 6. Crear un enlace <a> fantasma para iniciar la descarga
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = "historial_reportes.pdf"; // El nombre del archivo que verá el usuario
+
+    // 7. Añadir el enlace al cuerpo, hacer clic en él y luego removerlo
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // 8. Liberar la URL temporal de la memoria
+    URL.revokeObjectURL(blobUrl);
+
+    hideFeedback("dashboard-feedback");
+  } catch (error) {
+    console.error("Error al exportar PDF:", error);
+    showFeedback("dashboard-feedback", "Error al generar el PDF.", "error");
   }
 }
 
@@ -318,7 +398,7 @@ async function handleAssignFormSubmit(event) {
     // CAMBIO: Recargar la lista de reportes para que el asignado desaparezca
     setTimeout(() => {
       toggleModal("assign-report-modal", false);
-      loadIncomingReports();
+      loadHistoryReports();
       loadIndicators(); // Actualizar indicadores
     }, 1500);
   } catch (error) {
@@ -331,7 +411,7 @@ document.addEventListener("DOMContentLoaded", () => {
   checkAuthAndRedirect("SUPERVISOR");
 
   if (getUserRole() === "SUPERVISOR") {
-    loadIncomingReports(); // Cargar los reportes al iniciar
+    loadHistoryReports(); // Cargar los reportes al iniciar
     loadIndicators(); // Cargar los indicadores al iniciar
     loadWorkers(); // Cargar los trabajadores al iniciar
   }
@@ -341,7 +421,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (refreshBtn) {
     refreshBtn.addEventListener("click", () => {
       currentPage = 0; // opcional: volver a primera página
-      loadIncomingReports();
+      loadHistoryReports();
     });
   }
 
@@ -358,7 +438,7 @@ document.addEventListener("DOMContentLoaded", () => {
     filterForm.addEventListener("submit", (e) => {
       e.preventDefault(); // Evita que la página se recargue
       currentPage = 0; // Siempre volver a la primera página al filtrar
-      loadIncomingReports();
+      loadHistoryReports();
       loadIndicators(); // <-- AÑADIR AQUÍ
     });
 
@@ -368,9 +448,16 @@ document.addEventListener("DOMContentLoaded", () => {
       // después de que el formulario se haya limpiado visualmente.
       setTimeout(() => {
         currentPage = 0;
-        loadIncomingReports();
+        loadHistoryReports();
         loadIndicators(); // <-- AÑADIR AQUÍ
       }, 0);
+    });
+  }
+
+  const exportPdfBtn = getById("export-pdf-btn");
+  if (exportPdfBtn) {
+    exportPdfBtn.addEventListener("click", () => {
+      exportPdf();
     });
   }
 
@@ -378,14 +465,14 @@ document.addEventListener("DOMContentLoaded", () => {
   getById("prev-page").addEventListener("click", () => {
     if (currentPage > 0) {
       currentPage--;
-      loadIncomingReports();
+      loadHistoryReports();
     }
   });
 
   getById("next-page").addEventListener("click", () => {
     if (currentPage < totalPages - 1) {
       currentPage++;
-      loadIncomingReports();
+      loadHistoryReports();
     }
   });
 });

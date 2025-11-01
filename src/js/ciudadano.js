@@ -78,7 +78,6 @@ if (detectBtn) {
     detectBtn.textContent = "Detectando...";
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        console.log("Coordenadas crudas recibidas:", pos.coords);
         const lat = pos.coords.latitude.toFixed(6);
         const lon = pos.coords.longitude.toFixed(6);
         try {
