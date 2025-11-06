@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Supervisor - Modificar Perfil</title>
+
+    <link rel="stylesheet" href="./css/main.css" />
+    <link rel="stylesheet" href="./css/dashboard.css" />
+    <link rel="stylesheet" href="./css/auth.css" />
+    <link rel="shortcut icon" href="./img/favicon.ico" type="image/x-icon" />
+  </head>
+
+  <body class="dashboard-layout">
+    <header class="header">
+      <h2>Dashboard de Supervisor</h2>
+      <div class="header-actions">
+        <a href="./dashboard-supervisor.html" class="btn-secondary"
+          >Volver al Dashboard</a
+        >
+        <button id="logout-btn" class="btn-danger">Cerrar Sesión</button>
+      </div>
+    </header>
+
+    <main class="main-content container">
+      <h1>Modificar datos del perfil</h1>
+
+      <div class="auth-card" style="margin-top: 2rem; max-width: 600px">
+        <h3>Actualizar Información</h3>
+
+        <form id="perfil-form">
+          <div
+            id="perfil-feedback"
+            class="feedback-message"
+            style="display: none"
+          ></div>
+
+          <div class="form-group">
+            <label for="telefono">Número de Teléfono</label>
+            <input
+              type="tel"
+              id="telefono"
+              name="telefono"
+              placeholder="Ej: 985232159"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="password">Nueva Contraseña</label>
+            <input type="password" id="password" name="password" />
+          </div>
+
+          <div class="password-reqs">
+            <p>La contraseña debe tener:</p>
+            <ul>
+              <li>Al menos 8 caracteres.</li>
+              <li>Al menos una letra mayúscula.</li>
+              <li>Al menos un número.</li>
+              <li>No contener caracteres especiales.</li>
+            </ul>
+          </div>
+
+          <div class="form-group">
+            <label for="confirm-password">Confirmar Contraseña</label>
+            <input
+              type="password"
+              id="confirm-password"
+              name="confirm-password"
+            />
+          </div>
+
+          <button
+            type="submit"
+            id="save-button"
+            class="btn-auth btn-primary"
+            style="width: 100%"
+          >
+            Guardar cambios
+          </button>
+        </form>
+      </div>
+    </main>
+
+    <script type="module" src="./utils/dom.js"></script>
+    <script type="module" src="./js/auth.js"></script>
+    <script type="module" src="./js/perfil-supervisor.js"></script>
+  </body>
+</html>

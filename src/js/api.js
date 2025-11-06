@@ -64,3 +64,52 @@ export async function fetchWithAuth(url, options = {}) {
   // 5. Devolver la respuesta (inicial o reintentada)
   return response;
 }
+
+// ... (al final de tu archivo api.js, después de fetchWithAuth) ...
+
+/**
+ * Actualiza el perfil del usuario (teléfono y contraseña).
+ * Esta función es genérica y la usará el supervisor.
+ * @param {string} telefono
+ * @param {string} password
+ * @returns {Promise<Object>}
+ */
+export async function updateUserProfile(telefono, password) {
+  // NOTA: Ajusta esta URL al endpoint correcto de tu backend.
+  // Basado en tu auth.js, la URL base ya está en auth.js.
+  const { API_BASE_URL } = await import("./auth.js");
+  const endpoint = `${API_BASE_URL}/usuarios/perfil/me`; // (Asumiendo endpoint)
+
+  const payload = {
+    telefono: telefono,
+    password: password,
+  };
+
+  try {
+    // Usamos tu fetchWithAuth que ya maneja tokens y refresh
+    const response = await fetchWithAuth(endpoint, {
+      method: "PATCH", // O 'PUT', según tu backend
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      // Intenta leer un mensaje de error del backend
+      const errorData = await response.json().catch(() => ({}));
+      const mensaje = errorData.message || "No se pudo actualizar el perfil.";
+      throw new Error(mensaje);
+    }
+
+    // Si el backend responde 204 (No Content) o 200 sin cuerpo
+    if (response.status === 204) {
+      return { success: true };
+    }
+
+    return response.json(); // O { success: true } si no devuelve cuerpo
+  } catch (error) {
+    console.error("Error en updateUserProfile:", error);
+    throw error; // Propaga el error para que la página lo maneje
+  }
+}
