@@ -134,16 +134,21 @@ function renderReports(reports, totalPagesFromServer = 1) {
   // Si el backend ya devuelve solo la página actual, no es necesario slice aquí.
   tableBody.innerHTML = ""; // Limpiar contenido anterior
 
-  reports.forEach((report) => {
-    const row = tableBody.insertRow();
-    const statusClass =
-      report.status === "RESUELTO" ? "status-resolved" : "status-pending";
+  if (!reports || reports.length === 0) {
+    tableBody.innerHTML = `
+      <tr><td colspan="3" style="text-align:center;">No hay reportes disponibles.</td></tr>
+    `;
+  } else {
+    reports.forEach((report) => {
+      const row = tableBody.insertRow();
+      const statusClass =
+        report.status === "RESUELTO" ? "status-resolved" : "status-pending";
 
-    // Formatear createdAt con segundos (fallback si la propiedad tiene otro nombre)
-    const createdAtRaw = report.createdAt ?? report.date ?? report.created;
-    const createdAtFormatted = formatDateTimeWithSeconds(createdAtRaw);
+      // Formatear createdAt con segundos (fallback si la propiedad tiene otro nombre)
+      const createdAtRaw = report.createdAt ?? report.date ?? report.created;
+      const createdAtFormatted = formatDateTimeWithSeconds(createdAtRaw);
 
-    row.innerHTML = `
+      row.innerHTML = `
             <td>${createdAtFormatted}</td>
             <td>${
               report.type === "RESIDUOS_SOLIDOS"
@@ -154,7 +159,8 @@ function renderReports(reports, totalPagesFromServer = 1) {
             }</td>
             <td class="${statusClass}">${report.status}</td>
         `;
-  });
+    });
+  }
 
   // Mostrar número de página (usuario espera 1-based en la UI)
   const pageInfoEl = getById("page-info");
@@ -173,6 +179,12 @@ function renderReports(reports, totalPagesFromServer = 1) {
  * Función que simula la obtención de datos (debería usar fetchWithAuth en la realidad).
  */
 async function loadReports() {
+  const tableBody = getById("reports-table-body");
+  if (tableBody) {
+    tableBody.innerHTML = `
+      <tr><td colspan="3" style="text-align:center;">Cargando reportes...</td></tr>
+    `;
+  }
   try {
     // 1. Llama al endpoint CORRECTO Y ESPECÍFICO para el usuario logueado.
     // El backend ya se encarga de filtrar y paginar por nosotros.
@@ -186,6 +198,7 @@ async function loadReports() {
     // 3. No hay que filtrar NADA. Simplemente renderizamos los datos recibidos.
     // El backend es nuestra "fuente única de la verdad".
     if (pageData && pageData.content) {
+      totalPages = pageData.totalPages || 1; // ← actualiza el valor global
       renderReports(pageData.content, pageData.totalPages);
     } else {
       // Manejar el caso de una respuesta vacía o inesperada
@@ -210,122 +223,55 @@ if (reportForm) {
     e.preventDefault();
     hideFeedback(reportFeedbackId);
 
-    const type = (getById("report-type") || {}).value || "";
-    const location = (locationInput || {}).value.trim();
-    const description = (descriptionInput || {}).value.trim();
-    const files = (photosInput || {}).files || [];
-
-    // Validaciones
-    const missing = [];
-    if (!type) missing.push("Tipo de reporte");
-    if (!location) missing.push("Ubicación");
-    if (!files || files.length === 0)
-      missing.push("Foto del problema (al menos 1)");
-
-    if (missing.length > 0) {
-      showFeedback(reportFeedbackId, "Falta: " + missing.join(", "), "error");
-      return;
-    }
-
-    // Descripción: máximo 15 palabras
-    const descWords = wordCount(description);
-    if (descWords > 15) {
-      showFeedback(
-        reportFeedbackId,
-        `La descripción no puede superar 15 palabras (actual: ${descWords}).`,
-        "error"
-      );
-      return;
-    }
-
-    // Validar tipos de archivo
-    const allowed = ["image/jpeg", "image/png"];
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i];
-      if (!allowed.includes(f.type)) {
-        showFeedback(
-          reportFeedbackId,
-          `Formato de archivo no válido: ${f.name}. Solo jpg/png permitidos.`,
-          "error"
-        );
-        return;
-      }
-    }
-    // Subir archivos a Cloudinary (o a tu endpoint que haga proxy a Cloudinary),
-    // obtener URLs y luego enviar JSON al backend que espera ReporteDto.
-    async function uploadFileToCloudinary(file) {
-      const fd = new FormData();
-      fd.append("file", file);
-      // si tu endpoint necesita otros campos (upload_preset, api_key...), añádelos aquí
-      const token = getAccessToken && getAccessToken();
-      const headers = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      let res;
-      try {
-        res = await fetch(`${API_BASE_URL}/reporte/cargar`, {
-          method: "POST",
-          headers, // NO Content-Type aquí
-          body: fd,
-        });
-      } catch (err) {
-        throw new Error("Error de red al subir imagen: " + err.message);
-      }
-      // Leer el body una sola vez como texto (evita bodyUsed issues)
-      const rawText = await res.text().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(
-          `Error subiendo imagen: ${res.status}${
-            rawText ? " — " + rawText : ""
-          }`
-        );
-      }
-
-      // Intentar parsear JSON; si falla usar el texto crudo
-      let data;
-      try {
-        data = rawText ? JSON.parse(rawText) : null;
-      } catch (_) {
-        data = rawText;
-      }
-
-      // Si la API devuelve directamente una URL en texto
-      if (typeof data === "string" && data.trim()) return data.trim();
-      if (!data && rawText) return rawText;
-
-      // Buscar posibles ubicaciones de la URL en la respuesta JSON
-      const candidates = [
-        data?.secure_url,
-        data?.url,
-        data?.data?.secure_url,
-        data?.data?.url,
-        data?.result?.secure_url,
-        data?.result?.url,
-        data?.files?.[0]?.url,
-      ];
-
-      for (const c of candidates) {
-        if (typeof c === "string" && c.trim()) return c.trim();
-      }
-
-      if (Array.isArray(data)) {
-        const firstUrl = data.find(
-          (d) => typeof d === "string" && /^https?:\/\//.test(d)
-        );
-        if (firstUrl) return firstUrl;
-      }
-
-      console.warn(
-        "uploadFileToCloudinary: respuesta inesperada:",
-        data,
-        "rawText:",
-        rawText
-      );
-      return null;
-    }
+    const submitBtn = reportForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
 
     try {
+      const type = (getById("report-type") || {}).value || "";
+      const location = (locationInput || {}).value.trim();
+      const description = (descriptionInput || {}).value.trim();
+      const files = (photosInput || {}).files || [];
+
+      // Validaciones
+      const missing = [];
+      if (!type) missing.push("Tipo de reporte");
+      if (!location) missing.push("Ubicación");
+      if (!files || files.length === 0)
+        missing.push("Foto del problema (al menos 1)");
+
+      if (missing.length > 0) {
+        showFeedback(reportFeedbackId, "Falta: " + missing.join(", "), "error");
+        submitBtn.disabled = false; // ⚠️ REACTIVAR BOTÓN
+        return;
+      }
+
+      // Descripción: máximo 15 palabras
+      const descWords = wordCount(description);
+      if (descWords > 15) {
+        showFeedback(
+          reportFeedbackId,
+          `La descripción no puede superar 15 palabras (actual: ${descWords}).`,
+          "error"
+        );
+        submitBtn.disabled = false; // ⚠️ REACTIVAR BOTÓN
+        return;
+      }
+
+      // Validar tipos de archivo
+      const allowed = ["image/jpeg", "image/png"];
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        if (!allowed.includes(f.type)) {
+          showFeedback(
+            reportFeedbackId,
+            `Formato de archivo no válido: ${f.name}. Solo jpg/png permitidos.`,
+            "error"
+          );
+          submitBtn.disabled = false; // ⚠️ REACTIVAR BOTÓN
+          return;
+        }
+      }
+
       // Verificar token antes de enviar
       const token = getAccessToken && getAccessToken();
       if (!token) {
@@ -334,11 +280,13 @@ if (reportForm) {
           "No hay token de acceso. Inicie sesión nuevamente.",
           "error"
         );
+        submitBtn.disabled = false; // ⚠️ REACTIVAR BOTÓN
         return;
       }
 
-      showFeedback(reportFeedbackId, "Subiendo imágen...", "info");
-      // Si solo se permite 1 imagen: usar la primera (avisar si enviaron más)
+      showFeedback(reportFeedbackId, "Subiendo imagen...", "info");
+
+      // Si solo se permite 1 imagen: usar la primera
       const filesArray = Array.from(files);
       if (filesArray.length > 1) {
         showFeedback(
@@ -350,6 +298,7 @@ if (reportForm) {
 
       const fileToUpload = filesArray[0];
       let photoUrl;
+
       try {
         photoUrl = await uploadFileToCloudinary(fileToUpload);
       } catch (err) {
@@ -358,6 +307,7 @@ if (reportForm) {
           "Error subiendo la imagen: " + err.message,
           "error"
         );
+        submitBtn.disabled = false; // ⚠️ REACTIVAR BOTÓN
         return;
       }
 
@@ -367,10 +317,11 @@ if (reportForm) {
           "Error subiendo la imagen: no se obtuvo URL.",
           "error"
         );
+        submitBtn.disabled = false; // ⚠️ REACTIVAR BOTÓN
         return;
       }
 
-      // parsear location -> lat/lng
+      // Parsear location -> lat/lng
       const latStr = locationInput?.dataset?.lat;
       const lngStr = locationInput?.dataset?.lng;
       const address = locationInput?.dataset?.address || location;
@@ -380,22 +331,24 @@ if (reportForm) {
       const user = getCurrentUser();
       const payload = {
         type,
-        description,
+        description: description || null, // ⚠️ Enviar null si está vacío
         location: {
           lat: isFinite(lat) ? lat : null,
           lng: isFinite(lng) ? lng : null,
           address: address,
         },
         photos: [photoUrl],
-        zone: "Zona centro", // el backend asigna la zona según la ubicación
-        status: "PENDIENTE", // estado inicial
+        zone: "Zona centro", // El backend asigna la zona según la ubicación
+        status: "PENDIENTE",
         citizenId: user?.id,
         citizenName: user?.name,
         citizenPhone: user?.phone,
         citizenEmail: user?.email,
       };
 
-      // enviar JSON al backend (ReporteDto espera JSON)
+      // Enviar JSON al backend
+      showFeedback(reportFeedbackId, "Registrando reporte...", "info");
+
       const resp = await fetchWithAuth(`${API_BASE_URL}/reporte`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -403,40 +356,126 @@ if (reportForm) {
       });
 
       if (!resp.ok) {
-        // intentar leer mensaje de error del backend
         let errText = `Error al registrar: ${resp.status}`;
         try {
           const errJson = await resp.json();
-          if (errJson && errJson.message) errText = errJson.message;
-          else {
-            // si no viene JSON, obtener texto para pistas
-            const txt = await resp.text().catch(() => null);
-            if (txt) errText += ` — ${txt}`;
+          if (errJson?.message) {
+            errText = errJson.message;
           }
-        } catch (_) {}
+        } catch (_) {
+          const txt = await resp.text().catch(() => "");
+          if (txt) errText += ` — ${txt}`;
+        }
         showFeedback(reportFeedbackId, errText, "error");
+        submitBtn.disabled = false; // ⚠️ REACTIVAR BOTÓN
         return;
       }
 
-      // éxito
+      // Éxito
       showFeedback(reportFeedbackId, "Reporte registrado con éxito", "success");
       reportForm.reset();
-      // opcional: recargar tabla/actualizar UI
+
+      // Cerrar modal después de 1.5 segundos
       const modal = document.getElementById("new-report-modal");
       setTimeout(() => {
         if (modal) modal.classList.remove("open");
         hideFeedback(reportFeedbackId);
+        submitBtn.disabled = false; // ⚠️ REACTIVAR BOTÓN
       }, 1500);
-      loadReports();
+
+      // Recargar reportes
+      if (typeof loadReports === "function") {
+        loadReports();
+      }
     } catch (error) {
-      // error de red
+      // Error de red o inesperado
+      console.error("Error en submit de reporte:", error);
       showFeedback(
         reportFeedbackId,
-        "Error al registrar (problema de red): " + error.message,
+        "Error al registrar: " + error.message,
         "error"
       );
+      submitBtn.disabled = false; // ⚠️ REACTIVAR BOTÓN
     }
   });
+
+  // ========================================
+  // FUNCIÓN PARA SUBIR ARCHIVO A CLOUDINARY
+  // ========================================
+  async function uploadFileToCloudinary(file) {
+    const fd = new FormData();
+    fd.append("file", file);
+
+    const token = getAccessToken && getAccessToken();
+    const headers = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    let res;
+    try {
+      res = await fetch(`${API_BASE_URL}/reporte/cargar`, {
+        method: "POST",
+        headers, // NO incluir Content-Type para FormData
+        body: fd,
+      });
+    } catch (err) {
+      throw new Error("Error de red al subir imagen: " + err.message);
+    }
+
+    // Leer respuesta una sola vez
+    const rawText = await res.text().catch(() => null);
+
+    if (!res.ok) {
+      throw new Error(
+        `Error subiendo imagen: ${res.status}${rawText ? " — " + rawText : ""}`
+      );
+    }
+
+    // Intentar parsear JSON
+    let data;
+    try {
+      data = rawText ? JSON.parse(rawText) : null;
+    } catch (_) {
+      data = rawText;
+    }
+
+    // Si la API devuelve directamente una URL en texto
+    if (typeof data === "string" && data.trim()) {
+      return data.trim();
+    }
+
+    // Buscar URL en diferentes ubicaciones del JSON
+    const candidates = [
+      data?.secure_url,
+      data?.url,
+      data?.data?.secure_url,
+      data?.data?.url,
+      data?.result?.secure_url,
+      data?.result?.url,
+      data?.files?.[0]?.url,
+    ];
+
+    for (const c of candidates) {
+      if (typeof c === "string" && c.trim()) {
+        return c.trim();
+      }
+    }
+
+    // Si es un array, buscar la primera URL
+    if (Array.isArray(data)) {
+      const firstUrl = data.find(
+        (d) => typeof d === "string" && /^https?:\/\//.test(d)
+      );
+      if (firstUrl) return firstUrl;
+    }
+
+    console.error(
+      "uploadFileToCloudinary: respuesta inesperada:",
+      data,
+      "rawText:",
+      rawText
+    );
+    throw new Error("No se pudo obtener la URL de la imagen subida");
+  }
 }
 
 // Inicialización del dashboard

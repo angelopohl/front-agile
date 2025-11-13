@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Supervisor - Modificar Perfil</title>
+
+    <link rel="stylesheet" href="./css/main.css" />
+    <link rel="stylesheet" href="./css/auth.css" />
+    <link rel="stylesheet" href="./css/dashboard.css" />
+    <link rel="shortcut icon" href="./img/favicon.ico" type="image/x-icon" />
+  </head>
+
+  <body class="dashboard-layout">
+    <header class="header">
+      <h2>Dashboard de Supervisor</h2>
+      <div class="header-actions">
+        <a href="./dashboard-supervisor.html" class="btn-secondary"
+          >Volver al Dashboard</a
+        >
+        <button id="logout-btn" class="btn-danger">Cerrar Sesión</button>
+      </div>
+    </header>
+
+    <main class="main-content container">
+      <div class="auth-card" style="margin: 2rem auto; max-width: 600px">
+        <h1>Modificar Perfil</h1>
+
+        <form id="perfil-form">
+          <!-- El JavaScript añadirá las clases .error o .success -->
+          <div id="perfil-feedback" class="feedback-message"></div>
+
+          <div class="form-group">
+            <label for="telefono">Número de Teléfono</label>
+            <input type="tel" id="telefono" name="telefono" maxlength="9" />
+          </div>
+
+          <div class="form-group">
+            <label for="password">Nueva Contraseña</label>
+            <input type="password" id="password" name="password" />
+          </div>
+
+          <div class="password-reqs">
+            <p>La contraseña debe tener:</p>
+            <ul>
+              <li>Al menos 8 caracteres.</li>
+              <li>Al menos una letra mayúscula.</li>
+              <li>Al menos un número.</li>
+              <li>No contener caracteres especiales.</li>
+            </ul>
+          </div>
+
+          <div class="form-group">
+            <label for="confirm-password">Confirmar Contraseña</label>
+            <input
+              type="password"
+              id="confirm-password"
+              name="confirm-password"
+            />
+          </div>
+
+          <button type="submit" class="btn-auth btn-primary">
+            Guardar cambios
+          </button>
+        </form>
+      </div>
+    </main>
+
+    <script type="module" src="./utils/dom.js"></script>
+    <script type="module" src="./js/auth.js"></script>
+
+    <script type="module">
+      import {
+        checkAuthAndRedirect,
+        logout,
+        getCurrentUser,
+        updateUserProfile,
+      } from "./js/auth.js";
+      import { getById, showFeedback, hideFeedback } from "./utils/dom.js";
+
+      document.addEventListener("DOMContentLoaded", () => {
+        // Verificar autenticación (rol esperado: SUPERVISOR)
+        checkAuthAndRedirect("SUPERVISOR");
+
+        const form = getById("perfil-form");
+        const feedbackElementId = "perfil-feedback";
+        const logoutBtn = getById("logout-btn");
+        const telefonoInput = getById("telefono");
+
+        // Permitir solo dígitos en tiempo real
+        telefonoInput.addEventListener("input", (e) => {
+          e.target.value = e.target.value.replace(/\D/g, "");
+        });
+
+        // Manejar envío del formulario
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          hideFeedback(feedbackElementId);
+
+          const telefono = telefonoInput.value.trim();
+          const password = getById("password").value;
+          const confirmPassword = getById("confirm-password").value;
+
+          // ========================================
+          // CASO 5: Validar que al menos un campo esté lleno
+          // ========================================
+          if (!telefono && !password && !confirmPassword) {
+            showFeedback(
+              feedbackElementId,
+              "Debes modificar al menos un campo (teléfono o contraseña).",
+              "error"
+            );
+            return;
+          }
+
+          // ========================================
+          // VALIDACIONES DE CONTRASEÑA
+          // ========================================
+
+          // CASO 2: Ingresó nueva contraseña pero NO confirmó
+          if (password && !confirmPassword) {
+            showFeedback(
+              feedbackElementId,
+              "Debes confirmar la nueva contraseña.",
+              "error"
+            );
+            return;
+          }
+
+          // CASO 1: Ingresó confirmación pero NO ingresó nueva contraseña
+          if (!password && confirmPassword) {
+            showFeedback(
+              feedbackElementId,
+              "Debes ingresar una nueva contraseña antes de confirmarla.",
+              "error"
+            );
+            return;
+          }
+
+          // CASO 7: Las contraseñas no coinciden
+          if (password && confirmPassword && password !== confirmPassword) {
+            showFeedback(
+              feedbackElementId,
+              "Las contraseñas no coinciden.",
+              "error"
+            );
+            return;
+          }
+
+          // CASO 6: Validar requisitos de contraseña
+          if (password) {
+            const passwordValidation = validatePassword(password);
+            if (!passwordValidation.valid) {
+              showFeedback(
+                feedbackElementId,
+                passwordValidation.message,
+                "error"
+              );
+              return;
+            }
+          }
+
+          // ========================================
+          // VALIDACIONES DE TELÉFONO
+          // ========================================
+          if (telefono) {
+            const phoneValidation = validatePhone(telefono);
+            if (!phoneValidation.valid) {
+              showFeedback(feedbackElementId, phoneValidation.message, "error");
+              return;
+            }
+          }
+
+          // ========================================
+          // PREPARAR Y ENVIAR DATOS
+          // ========================================
+          const updateData = {};
+          if (telefono) updateData.phone = telefono;
+          if (password) updateData.password = password;
+
+          const success = await updateUserProfile(updateData);
+
+          if (success) {
+            showFeedback(
+              feedbackElementId,
+              "Perfil actualizado exitosamente.",
+              "success"
+            );
+
+            // Limpiar todos los campos
+            telefonoInput.value = "";
+            getById("password").value = "";
+            getById("confirm-password").value = "";
+
+            // Recargar página después de 1.5 segundos
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
+          } else {
+            showFeedback(
+              feedbackElementId,
+              "Error al actualizar el perfil. Intenta nuevamente.",
+              "error"
+            );
+          }
+        });
+
+        // Manejar cerrar sesión
+        logoutBtn.addEventListener("click", () => {
+          logout();
+        });
+      });
+
+      /**
+       * CASO 6: Valida el formato y requisitos de la contraseña
+       */
+      function validatePassword(password) {
+        if (password.length < 8) {
+          return {
+            valid: false,
+            message: "La contraseña debe tener al menos 8 caracteres.",
+          };
+        }
+
+        if (!/[A-Z]/.test(password)) {
+          return {
+            valid: false,
+            message:
+              "La contraseña debe contener al menos una letra mayúscula.",
+          };
+        }
+
+        if (!/[0-9]/.test(password)) {
+          return {
+            valid: false,
+            message: "La contraseña debe contener al menos un número.",
+          };
+        }
+
+        // Verificar que NO tenga caracteres especiales
+        if (/[^a-zA-Z0-9]/.test(password)) {
+          return {
+            valid: false,
+            message: "La contraseña no debe contener caracteres especiales.",
+          };
+        }
+
+        return { valid: true };
+      }
+
+      /**
+       * CASO 3 y CASO 8: Valida el formato del teléfono
+       */
+      function validatePhone(phone) {
+        if (!/^\d+$/.test(phone)) {
+          return {
+            valid: false,
+            message: "El teléfono solo debe contener números.",
+          };
+        }
+
+        if (phone.length !== 9) {
+          return {
+            valid: false,
+            message: "El teléfono debe tener exactamente 9 dígitos.",
+          };
+        }
+
+        if (!phone.startsWith("9")) {
+          return {
+            valid: false,
+            message: "El teléfono debe iniciar con el dígito 9.",
+          };
+        }
+
+        return { valid: true };
+      }
+    </script>
+  </body>
+</html>

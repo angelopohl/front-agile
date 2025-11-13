@@ -108,3 +108,61 @@
 .auth-card a:hover {
   text-decoration: underline;
 }
+
+/* =============================================== */
+/* ESTILOS ADICIONALES PARA FORMULARIO DE PERFIL */
+/* =============================================== */
+
+/*
+ * Estilos para el bloque de requisitos de contraseña
+ * (Clase: .password-reqs)
+*/
+.password-reqs {
+  font-size: 0.85rem;
+  color: var(--color-secondary); /* Usa el color de texto secundario */
+  background-color: var(--color-background); /* Usa el color de fondo */
+  padding: 0.8rem 1.2rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  margin-top: -0.5rem; /* Lo acerca al input de arriba */
+}
+
+.password-reqs p {
+  margin: 0 0 0.5rem 0;
+  font-weight: 600; /* Igual que las etiquetas */
+  color: var(--color-text); /* Color de texto principal */
+}
+
+.password-reqs ul {
+  margin: 0;
+  padding-left: 1.2rem; /* Sangría estándar para la lista */
+}
+
+/*
+ * Estilos para los mensajes de feedback (error/success)
+ * (Clase: .feedback-message)
+*/
+.feedback-message {
+  padding: 0.8rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: none; /* Oculto por defecto */
+}
+
+/* La clase '.error' se añadirá con JavaScript */
+.feedback-message.error {
+  background-color: #f8d7da; /* Rojo pálido */
+  color: #721c24; /* Rojo oscuro */
+  border: 1px solid #f5c6cb;
+  display: block;
+}
+
+/* La clase '.success' se añadirá con JavaScript */
+.feedback-message.success {
+  background-color: #d4edda; /* Verde pálido */
+  color: #155724; /* Verde oscuro */
+  border: 1px solid #c3e6cb;
+  display: block;
+}

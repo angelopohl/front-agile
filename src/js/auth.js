@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------
 
 export const API_BASE_URL =
-  "https://trujillo-informado-backend-3b3a9e8b54ac.herokuapp.com/api/v1"; // URL de la API de Spring Boot  http://localhost:8080
+  "https://trujillo-informado-backend-3b3a9e8b54ac.herokuapp.com/api/v1"; // URL de la API de Spring Boot http://localhost:8080
 
 const TOKEN_KEY_ACCESS = "trujillo_accessToken";
 const TOKEN_KEY_REFRESH = "trujillo_refreshToken";
@@ -363,4 +363,44 @@ export function getCurrentUser() {
     role: getUserRole(),
     raw: null,
   };
+}
+
+/**
+ * Actualiza el perfil del usuario actual en el backend.
+ * @param {Object} updateData - Datos a actualizar (phone, password)
+ * @returns {Promise<boolean>} - true si la actualización fue exitosa
+ */
+export async function updateUserProfile(updateData) {
+  try {
+    const currentUser = getCurrentUser();
+    if (!currentUser || !currentUser.email) {
+      console.error("No hay usuario autenticado");
+      return false;
+    }
+
+    const { fetchWithAuth } = await import("./api.js");
+
+    // Endpoint correcto: PATCH /api/v1/perfil
+    const endpoint = `${API_BASE_URL}/perfil`;
+
+    const response = await fetchWithAuth(endpoint, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updateData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("Error al actualizar perfil:", errorData);
+      return false;
+    }
+
+    console.log("Perfil actualizado exitosamente");
+    return true;
+  } catch (error) {
+    console.error("Error en updateUserProfile:", error);
+    return false;
+  }
 }
