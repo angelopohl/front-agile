@@ -273,7 +273,7 @@ function handleAssignButtonClick(report) {
   allWorkers.forEach((worker) => {
     const option = document.createElement("option");
     option.value = worker.id; // Asumimos que cada trabajador tiene un 'id'
-    option.textContent = worker.name + " " + worker.lastname; // Asumimos 'name' y 'lastname'
+    option.textContent = worker.name + " " + "(" + worker.lastname + ")"; // Asumimos 'name' y 'lastname'
     workerSelect.appendChild(option);
   });
 
