@@ -32,12 +32,58 @@
 
       <h3>Mis Tareas Asignadas</h3>
 
+      <section class="filter-bar">
+        <form id="filter-form" class="filter-form-horizontal">
+          <div class="filter-group-horizontal">
+            <label class="group-label">Filtrar por Estado</label>
+            <div class="filter-options-inline">
+              <div class="filter-option">
+                <input
+                  type="radio"
+                  id="filter-state-all"
+                  name="estado"
+                  value=""
+                  checked
+                />
+                <label for="filter-state-all">Todos</label>
+              </div>
+
+              <div class="filter-option">
+                <input
+                  type="radio"
+                  id="filter-state-pending"
+                  name="estado"
+                  value="PENDIENTE"
+                />
+                <label for="filter-state-pending">Pendiente</label>
+              </div>
+
+              <div class="filter-option">
+                <input
+                  type="radio"
+                  id="filter-state-resolved"
+                  name="estado"
+                  value="RESUELTO"
+                />
+                <label for="filter-state-resolved">Resuelto</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="filter-actions-horizontal">
+            <button type="submit" class="btn-primary">Aplicar Filtro</button>
+            <button type="reset" class="btn-secondary">Limpiar</button>
+          </div>
+        </form>
+      </section>
+
       <div class="table-container">
         <table class="data-table">
           <thead>
             <tr>
               <th>Fecha Asignación</th>
               <th>Tipo de Tarea</th>
+              <th>Descripción</th>
               <th>Ubicación</th>
               <th>Foto Referencia</th>
               <th>Acción</th>

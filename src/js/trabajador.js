@@ -40,80 +40,117 @@ function formatDate(input) {
 
 /**
  * Dibuja la tabla de tareas asignadas en el DOM.
- * @param {Array<Object>} tasks - Lista de tareas de la página actual.
+ * @param {Array<Object>} tasks - Lista de tareas.
+ * @param {number} totalPagesFromServer - Total de páginas.
+ * @param {string} [customEmptyMessage] - Mensaje si no hay tareas.
  */
-function renderTasks(tasks) {
+function renderTasks(
+  tasks,
+  totalPagesFromServer = 1,
+  customEmptyMessage = "No tienes tareas asignadas."
+) {
   const tableBody = getById("tasks-table-body");
   if (!tableBody) return;
 
   tableBody.innerHTML = ""; // Limpiar antes de renderizar.
 
-  tasks.forEach((task) => {
-    // Asumimos que la API devuelve la tarea con el reporte anidado.
-    const reporte = task.report || {};
-    const location = reporte.location?.address || "Ubicación no disponible";
-    const photoUrl =
-      reporte.photos && reporte.photos.length > 0
-        ? reporte.photos[0]
-        : "https://placehold.co/150x150?text=Sin+Imagen";
-    const type =
-      reporte.type === "RESIDUOS_SOLIDOS"
-        ? "Residuos Sólidos"
-        : reporte.type === "BARRIDO"
-        ? "Barrido"
-        : "Maleza" || "No especificado";
+  if (!tasks || tasks.length === 0) {
+    // AC #7: Mostrar el mensaje personalizado
+    tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center;">${customEmptyMessage}</td></tr>`;
+  } else {
+    // AC #6: Mostrar campos requeridos
+    tasks.forEach((task) => {
+      const reporte = task.report || {};
+      const description =
+        task.description || reporte.description || "Sin descripción"; // AC #6: nota del supervisor
+      const location = reporte.location?.address || "Ubicación no disponible"; // AC #6: ubicación
+      const photoUrl =
+        reporte.photos && reporte.photos.length > 0
+          ? reporte.photos[0]
+          : "https://placehold.co/150x150?text=Sin+Imagen"; // AC #6: foto
+      const type =
+        reporte.type === "RESIDUOS_SOLIDOS"
+          ? "Residuos Sólidos"
+          : reporte.type === "BARRIDO"
+          ? "Barrido"
+          : "Maleza" || "No especificado"; // AC #6: tipo
 
-    const row = tableBody.insertRow();
-    row.innerHTML = `
-      <td>${formatDate(task.assignedAt)}</td>
-      <td>${type}</td>
-      <td>${location}</td>
-      <td><a href="${photoUrl}" target="_blank"><img src="${photoUrl}" alt="Foto del reporte" style="width:150px; height:150px; border-radius:4px; object-fit: cover;"></a></td>
-      <td>
-        <button class="btn-success btn-sm complete-btn">
-          Completar Tarea
-        </button>
-      </td>
-    `;
-    // Guardar el objeto de tarea completo en el botón para fácil acceso.
-    row
-      .querySelector(".complete-btn")
-      .addEventListener("click", () => handleCompleteButtonClick(task));
-  });
+      const row = tableBody.insertRow();
+      row.innerHTML = `
+        <td>${formatDate(task.assignedAt)}</td> <td>${type}</td>
+        <td>${description}</td>
+        <td>${location}</td>
+        <td><a href="${photoUrl}" target="_blank"><img src="${photoUrl}" alt="Foto del reporte" style="width:150px; height:150px; border-radius:4px; object-fit: cover;"></a></td>
+        <td>
+          <button class="btn-success btn-sm complete-btn" ${
+            task.status === "RESUELTO" ? "disabled" : "" // "RESUELTO" o "FINALIZADA"
+          }>
+            Completar Tarea
+          </button>
+        </td>
+      `;
+      row
+        .querySelector(".complete-btn")
+        .addEventListener("click", () => handleCompleteButtonClick(task));
+    });
+  }
 
   // Actualizar controles de paginación.
   getById("page-info").textContent = `Página ${
     currentPage + 1
-  } de ${totalPages}`;
+  } de ${totalPagesFromServer}`;
   getById("prev-page").disabled = currentPage === 0;
-  getById("next-page").disabled = currentPage >= totalPages - 1;
+  getById("next-page").disabled = currentPage >= totalPagesFromServer - 1;
 }
 
 /**
- * Carga las tareas asignadas al trabajador desde la API.
+ * Carga las tareas asignadas al trabajador desde la API (CON FILTROS).
  */
 async function loadAssignedTasks() {
+  const tableBody = getById("tasks-table-body");
+  if (tableBody) {
+    // Actualiza el colspan a 6 para que coincida con tu tabla
+    tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center;">Cargando tareas...</td></tr>`;
+  }
+
+  // 1. Leer el valor del filtro (será "", "PENDIENTE" o "RESUELTO")
+  const filterValue =
+    document.querySelector('input[name="estado"]:checked')?.value || "";
+
+  // 2. Construir los parámetros
+  const params = new URLSearchParams();
+  params.append("page", currentPage);
+  params.append("size", TASKS_PER_PAGE);
+  params.append("sort", "assignedAt,desc"); // AC #5: Ordenados del más reciente
+
+  if (filterValue) {
+    params.append("estado", filterValue); // Añadir el filtro si existe
+  }
+
   try {
-    // CAMBIO: Llamada real a la API para obtener las tareas del trabajador logueado.
+    // 3. Llamar a la API con los parámetros
     const response = await fetchWithAuth(
-      `${API_BASE_URL}/tareas/me?page=${currentPage}&size=${TASKS_PER_PAGE}&sort=assignedAt,desc`
+      `${API_BASE_URL}/tareas/me?${params.toString()}`
     );
     const pageData = await response.json();
 
-    if (pageData && pageData.content) {
+    if (pageData && pageData.content && pageData.content.length > 0) {
       totalPages = pageData.totalPages;
-      renderTasks(pageData.content);
+      renderTasks(pageData.content, totalPages);
     } else {
+      // 4. Manejar el estado vacío (AC #7)
       totalPages = 1;
-      renderTasks([]);
+      currentPage = 0;
+      const message = filterValue
+        ? "No se encontraron tareas en este estado."
+        : "No tienes tareas asignadas.";
+      renderTasks([], 1, message);
     }
   } catch (error) {
     console.error("Error al cargar tareas:", error);
-    showFeedback(
-      "dashboard-feedback",
-      "Error al cargar las tareas asignadas.",
-      "error"
-    );
+    const message = "Error al cargar las tareas asignadas.";
+    showFeedback("dashboard-feedback", message, "error");
+    renderTasks([], 1, message);
   }
 }
 
@@ -242,6 +279,25 @@ document.addEventListener("DOMContentLoaded", () => {
     "submit",
     handleCompletionFormSubmit
   );
+
+  const filterForm = getById("filter-form");
+  if (filterForm) {
+    // Listener para "Aplicar Filtro"
+    filterForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      currentPage = 0; // Volver a la página 1 al filtrar
+      loadAssignedTasks();
+    });
+
+    // Listener para "Limpiar" (AC #4)
+    filterForm.addEventListener("reset", () => {
+      // Esperar un instante a que el form se resetee
+      setTimeout(() => {
+        currentPage = 0;
+        loadAssignedTasks();
+      }, 0);
+    });
+  }
 
   // Configurar paginación.
   getById("prev-page").addEventListener("click", () => {

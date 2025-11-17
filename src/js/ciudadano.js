@@ -126,43 +126,49 @@ if (cancelBtn) {
 /**
  * Dibuja la tabla de reportes en el DOM.
  * @param {Array<Object>} reports - Lista de reportes.
+ * @param {number} totalPagesFromServer - Total de páginas desde el servidor.
+ * @param {string} [customEmptyMessage] - Mensaje a mostrar si no hay reportes.
  */
-function renderReports(reports, totalPagesFromServer = 1) {
+function renderReports(
+  reports,
+  totalPagesFromServer = 1,
+  customEmptyMessage = "No hay reportes disponibles."
+) {
   const tableBody = getById("reports-table-body");
   if (!tableBody) return;
 
-  // Si el backend ya devuelve solo la página actual, no es necesario slice aquí.
   tableBody.innerHTML = ""; // Limpiar contenido anterior
 
   if (!reports || reports.length === 0) {
+    // Usa el mensaje personalizado (para AC 8)
     tableBody.innerHTML = `
-      <tr><td colspan="3" style="text-align:center;">No hay reportes disponibles.</td></tr>
+      <tr><td colspan="3" style="text-align:center;">${customEmptyMessage}</td></tr>
     `;
   } else {
+    // AC 7: Mostrar fecha, tipo y estado
     reports.forEach((report) => {
       const row = tableBody.insertRow();
       const statusClass =
         report.status === "RESUELTO" ? "status-resolved" : "status-pending";
 
-      // Formatear createdAt con segundos (fallback si la propiedad tiene otro nombre)
       const createdAtRaw = report.createdAt ?? report.date ?? report.created;
       const createdAtFormatted = formatDateTimeWithSeconds(createdAtRaw);
 
       row.innerHTML = `
-            <td>${createdAtFormatted}</td>
-            <td>${
-              report.type === "RESIDUOS_SOLIDOS"
-                ? "Residuos Sólidos"
-                : report.type === "BARRIDO"
-                ? "Barrido"
-                : "Maleza"
-            }</td>
-            <td class="${statusClass}">${report.status}</td>
-        `;
+        <td>${createdAtFormatted}</td>
+        <td>${
+          report.type === "RESIDUOS_SOLIDOS"
+            ? "Residuos Sólidos"
+            : report.type === "BARRIDO"
+            ? "Barrido"
+            : "Maleza"
+        }</td>
+        <td class="${statusClass}">${report.status}</td>
+      `;
     });
   }
 
-  // Mostrar número de página (usuario espera 1-based en la UI)
+  // Actualizar UI de paginación
   const pageInfoEl = getById("page-info");
   if (pageInfoEl) {
     pageInfoEl.textContent = `Página ${
@@ -175,8 +181,9 @@ function renderReports(reports, totalPagesFromServer = 1) {
   if (prevBtn) prevBtn.disabled = currentPage === 0;
   if (nextBtn) nextBtn.disabled = currentPage >= totalPagesFromServer - 1;
 }
+
 /**
- * Función que simula la obtención de datos (debería usar fetchWithAuth en la realidad).
+ * Carga los reportes del ciudadano, aplicando los filtros de estado.
  */
 async function loadReports() {
   const tableBody = getById("reports-table-body");
@@ -185,24 +192,42 @@ async function loadReports() {
       <tr><td colspan="3" style="text-align:center;">Cargando reportes...</td></tr>
     `;
   }
+
+  // 1. Obtener el valor del filtro seleccionado
+  // Usamos .value, que será "PENDIENTE", "RESUELTO" o "" (para "Todos")
+  const filterValue =
+    document.querySelector('input[name="estado"]:checked')?.value || "";
+
+  // 2. Construir los parámetros de la URL
+  const params = new URLSearchParams();
+  params.append("page", currentPage);
+  params.append("size", REPORTS_PER_PAGE);
+  params.append("sort", "createdAt,desc"); // AC 4: Ordenados del más reciente al más antiguo
+  if (filterValue) {
+    // Si el valor no es "", lo añadimos al query
+    params.append("estado", filterValue);
+  }
+
   try {
-    // 1. Llama al endpoint CORRECTO Y ESPECÍFICO para el usuario logueado.
-    // El backend ya se encarga de filtrar y paginar por nosotros.
+    // 3. Llamar a la API con los parámetros (ej: .../me?page=0&estado=PENDIENTE)
     const resp = await fetchWithAuth(
-      `${API_BASE_URL}/reportes/me?page=${currentPage}&size=${REPORTS_PER_PAGE}&sort=createdAt,desc`
+      `${API_BASE_URL}/reportes/me?${params.toString()}`
     );
 
-    // 2. La respuesta del servidor ya contiene EXACTAMENTE lo que necesitamos.
-    const pageData = await resp.json(); // Ej: { content: [...], totalPages: 5 }
+    const pageData = await resp.json();
 
-    // 3. No hay que filtrar NADA. Simplemente renderizamos los datos recibidos.
-    // El backend es nuestra "fuente única de la verdad".
-    if (pageData && pageData.content) {
-      totalPages = pageData.totalPages || 1; // ← actualiza el valor global
+    // 4. Renderizar los datos o el mensaje de "no encontrado"
+    if (pageData && pageData.content && pageData.content.length > 0) {
+      totalPages = pageData.totalPages || 1;
       renderReports(pageData.content, pageData.totalPages);
     } else {
-      // Manejar el caso de una respuesta vacía o inesperada
-      renderReports([], 0);
+      // AC 8: Mostrar mensaje específico si no hay reportes para ese filtro
+      totalPages = 1;
+      currentPage = 0;
+      const message = filterValue
+        ? "No se encontraron reportes en este estado." // Mensaje con filtro
+        : "No hay reportes disponibles."; // Mensaje sin filtro
+      renderReports([], 1, message); // Pasamos el mensaje a renderReports
     }
   } catch (error) {
     console.error("Error al cargar reportes:", error);
@@ -211,6 +236,8 @@ async function loadReports() {
       "Error al cargar el historial de reportes.",
       "error"
     );
+    // Asegurarse de que renderReports limpie la tabla en caso de error
+    renderReports([], 1, "Error al cargar reportes.");
   }
 }
 
@@ -499,7 +526,27 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleModal("new-report-modal", false)
   );
 
-  // 4. Configurar paginación
+  // 4. Configurar listeners del formulario de filtros
+  const filterForm = getById("filter-form");
+  if (filterForm) {
+    // Listener para el botón "Aplicar Filtro"
+    filterForm.addEventListener("submit", (e) => {
+      e.preventDefault(); // Evitar recarga de página
+      currentPage = 0; // Al filtrar, volver a la página 1
+      loadReports();
+    });
+
+    // Listener para el botón "Limpiar" (AC 6)
+    filterForm.addEventListener("reset", () => {
+      // Usar setTimeout para ejecutar loadReports DESPUÉS de que el form se resetee
+      setTimeout(() => {
+        currentPage = 0;
+        loadReports();
+      }, 0);
+    });
+  }
+
+  // 5. Configurar paginación
   const prevEl = getById("prev-page");
   const nextEl = getById("next-page");
 
