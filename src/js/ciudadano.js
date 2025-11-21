@@ -28,6 +28,19 @@ const cancelBtn = getById("cancel-report-btn");
 const REPORTS_PER_PAGE = 10;
 let currentPage = 0;
 let totalPages = 1;
+let currentRating = 0;
+
+// Función visual para pintar estrellas
+function updateStarsUI(value) {
+  const stars = document.querySelectorAll(".star-rating .star");
+  stars.forEach((s) => {
+    if (parseInt(s.dataset.value) <= value) {
+      s.classList.add("active");
+    } else {
+      s.classList.remove("active");
+    }
+  });
+}
 
 // Util: contar palabras
 function wordCount(text) {
@@ -59,6 +72,62 @@ async function reverseGeocode(lat, lng) {
     return data.display_name || `Lat: ${lat}, Lng: ${lng}`;
   } catch (err) {
     return `Lat: ${lat}, Lng: ${lng}`;
+  }
+}
+
+function openRateModal(reportId) {
+  getById("rate-report-id").value = reportId;
+  getById("selected-rating").value = "";
+  getById("rate-comment").value = "";
+  currentRating = 0;
+  updateStarsUI(0);
+  hideFeedback("rate-feedback");
+  toggleModal("rate-modal", true);
+}
+
+async function handleRateSubmit(e) {
+  e.preventDefault();
+  const reportId = getById("rate-report-id").value;
+  const rating = getById("selected-rating").value;
+  const comment = getById("rate-comment").value;
+  const feedbackId = "rate-feedback";
+
+  // AC #4: Calificación obligatoria
+  if (!rating) {
+    showFeedback(
+      feedbackId,
+      "Debe seleccionar una calificación (estrellas).",
+      "error"
+    );
+    return;
+  }
+
+  try {
+    const payload = {
+      rating: parseInt(rating),
+      comment: comment,
+    };
+
+    const resp = await fetchWithAuth(
+      `${API_BASE_URL}/reporte/${reportId}/rate`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!resp.ok) throw new Error("Error al enviar calificación");
+
+    // AC #5: Mensaje de confirmación
+    showFeedback(feedbackId, "Gracias por su retroalimentación", "success");
+
+    setTimeout(() => {
+      toggleModal("rate-modal", false);
+      loadReports(); // Recargar para ver el cambio a "solo lectura"
+    }, 2000);
+  } catch (err) {
+    showFeedback(feedbackId, err.message, "error");
   }
 }
 
@@ -137,15 +206,13 @@ function renderReports(
   const tableBody = getById("reports-table-body");
   if (!tableBody) return;
 
-  tableBody.innerHTML = ""; // Limpiar contenido anterior
+  tableBody.innerHTML = "";
 
   if (!reports || reports.length === 0) {
-    // Usa el mensaje personalizado (para AC 8)
     tableBody.innerHTML = `
-      <tr><td colspan="3" style="text-align:center;">${customEmptyMessage}</td></tr>
+      <tr><td colspan="4" style="text-align:center;">${customEmptyMessage}</td></tr>
     `;
   } else {
-    // AC 7: Mostrar fecha, tipo y estado
     reports.forEach((report) => {
       const row = tableBody.insertRow();
       const statusClass =
@@ -153,6 +220,16 @@ function renderReports(
 
       const createdAtRaw = report.createdAt ?? report.date ?? report.created;
       const createdAtFormatted = formatDateTimeWithSeconds(createdAtRaw);
+
+      let actionCellHTML = "-";
+
+      if (report.status === "RESUELTO") {
+        if (report.rating) {
+          actionCellHTML = `<span style="color:#f39c12">★ ${report.rating}/5</span>`;
+        } else {
+          actionCellHTML = `<button class="btn-primary btn-sm rate-btn" data-report-id="${report.id}">Calificar Servicio</button>`;
+        }
+      }
 
       row.innerHTML = `
         <td>${createdAtFormatted}</td>
@@ -164,7 +241,17 @@ function renderReports(
             : "Maleza"
         }</td>
         <td class="${statusClass}">${report.status}</td>
+        <td>${actionCellHTML}</td>
       `;
+
+      // Listener para el botón "Calificar"
+      const rateBtn = row.querySelector(".rate-btn");
+      if (rateBtn) {
+        rateBtn.addEventListener("click", () => {
+          const reportId = rateBtn.dataset.reportId;
+          openRateModal(reportId);
+        });
+      }
     });
   }
 
@@ -567,4 +654,25 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+
+  // Configurar estrellas
+  const stars = document.querySelectorAll(".star-rating .star");
+  stars.forEach((star) => {
+    star.addEventListener("click", () => {
+      const val = parseInt(star.dataset.value);
+      currentRating = val;
+      document.getElementById("selected-rating").value = val;
+      updateStarsUI(val);
+    });
+  });
+
+  // Configurar Formulario de Calificación
+  const rateForm = getById("rate-form");
+  if (rateForm) {
+    rateForm.addEventListener("submit", handleRateSubmit);
+  }
+
+  getById("close-rate-modal")?.addEventListener("click", () =>
+    toggleModal("rate-modal", false)
+  );
 });

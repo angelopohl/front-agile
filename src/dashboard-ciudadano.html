@@ -84,6 +84,7 @@
               <th>Fecha y Hora</th>
               <th>Tipo de Reporte</th>
               <th>Estado</th>
+              <th>Acción</th>
             </tr>
           </thead>
           <tbody id="reports-table-body">
@@ -182,6 +183,54 @@
                 class="btn-secondary"
               >
                 Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Calificar Servicio (Ciudadano) -->
+    <div id="rate-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Calificar Servicio de Limpieza</h3>
+          <button id="close-rate-modal" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div
+            id="rate-feedback"
+            class="feedback-message"
+            style="display: none"
+          ></div>
+
+          <form id="rate-form">
+            <input type="hidden" id="rate-report-id" />
+
+            <div class="form-group" style="text-align: center">
+              <label>Calificación (Obligatorio):</label>
+              <div class="star-rating">
+                <span class="star" data-value="1">★</span>
+                <span class="star" data-value="2">★</span>
+                <span class="star" data-value="3">★</span>
+                <span class="star" data-value="4">★</span>
+                <span class="star" data-value="5">★</span>
+              </div>
+              <input type="hidden" id="selected-rating" required />
+            </div>
+
+            <div class="form-group">
+              <label for="rate-comment">Comentario (Opcional):</label>
+              <textarea
+                id="rate-comment"
+                rows="3"
+                placeholder="¿Qué le pareció el servicio?"
+              ></textarea>
+            </div>
+
+            <div class="modal-actions">
+              <button type="submit" class="btn-primary">
+                Enviar Calificación
               </button>
             </div>
           </form>

@@ -37,7 +37,11 @@
 
           <div class="form-group">
             <label for="function">Función</label>
-            <input id="function" name="function" type="text" />
+            <select id="function" name="function">
+              <option value="">Selecciona una opción</option>
+              <option value="Barrido">Barrido</option>
+              <option value="Recojo">Recojo</option>
+            </select>
           </div>
 
           <div class="form-group">
@@ -111,7 +115,6 @@
 
         // Aplicar el listener a los campos de nombre y función
         getById("name").addEventListener("input", sanitizeTextInput);
-        getById("function").addEventListener("input", sanitizeTextInput);
 
         // Permitir solo dígitos en tiempo real
         telefonoInput.addEventListener("input", (e) => {

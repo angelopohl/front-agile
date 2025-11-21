@@ -192,6 +192,22 @@
     gap: 1rem;
 }
 
+/* Estilos para la calificación con estrellas */
+
+.star-rating {
+  font-size: 2rem;
+  color: #ccc;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+.star-rating .star:hover,
+.star-rating .star.active {
+  color: #f39c12; /* Color dorado */
+}
+
 /* Animación para el modal */
 @keyframes fadeIn {
     from {
@@ -294,6 +310,8 @@
   padding: 2rem;
   color: var(--color-secondary);
 }
+
+
 
 /* Responsividad */
 @media (max-width: 1200px) {

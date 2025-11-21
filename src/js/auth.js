@@ -2,8 +2,7 @@
 // auth.js: Manejo de Tokens, Login, Logout y Redirecciones
 // ----------------------------------------------------------------
 
-export const API_BASE_URL =
-  "https://trujillo-informado-backend-3b3a9e8b54ac.herokuapp.com/api/v1"; // URL de la API de Spring Boot http://localhost:8080
+export const API_BASE_URL = "http://localhost:8080/api/v1"; // URL de la API de Spring Boot  https://trujillo-informado-backend-3b3a9e8b54ac.herokuapp.com
 
 const TOKEN_KEY_ACCESS = "trujillo_accessToken";
 const TOKEN_KEY_REFRESH = "trujillo_refreshToken";
