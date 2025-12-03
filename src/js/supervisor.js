@@ -38,6 +38,36 @@ function formatDateTimeWithSeconds(input) {
   )}`;
 }
 
+function updateWorkersList(reportType) {
+  const workerSelect = getById("worker-select");
+  workerSelect.innerHTML = '<option value="">Seleccione un Trabajador</option>';
+
+  const validWorkers = allWorkers.filter((worker) => {
+    if (reportType === "RESIDUOS_SOLIDOS") {
+      return worker.lastname === "Recojo";
+    }
+    if (reportType === "BARRIDO" || reportType === "MALEZA") {
+      return worker.lastname === "Barrido";
+    }
+    return false;
+  });
+
+  validWorkers.forEach((worker) => {
+    const option = document.createElement("option");
+    option.value = worker.id;
+    option.textContent = `${worker.name} (${worker.lastname})`;
+    workerSelect.appendChild(option);
+  });
+
+  if (validWorkers.length === 0) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No hay trabajadores disponibles para este tipo";
+    option.disabled = true;
+    workerSelect.appendChild(option);
+  }
+}
+
 /**
  * Dibuja la tabla de reportes en el DOM.
  * @param {Array<Object>} reports - Lista de reportes de la página actual.
@@ -262,20 +292,13 @@ async function exportPdf() {
  * @param {Object} report - El objeto completo del reporte a asignar.
  */
 function handleAssignButtonClick(report) {
-  currentReportToAssign = report; // Guardamos el reporte actual
+  currentReportToAssign = report;
 
-  // Rellenar el modal
+  // Prellenar tipo de reporte
   getById("modal-report-type").value = currentReportToAssign.type;
-  const workerSelect = getById("worker-select");
-  workerSelect.innerHTML = '<option value="">Seleccione un Trabajador</option>';
 
-  // CAMBIO: Usar la lista de trabajadores real (`allWorkers`)
-  allWorkers.forEach((worker) => {
-    const option = document.createElement("option");
-    option.value = worker.id; // Asumimos que cada trabajador tiene un 'id'
-    option.textContent = worker.name + " " + "(" + worker.lastname + ")"; // Asumimos 'name' y 'lastname'
-    workerSelect.appendChild(option);
-  });
+  // Cargar trabajadores iniciales
+  updateWorkersList(currentReportToAssign.type);
 
   hideFeedback("assign-modal-feedback");
   toggleModal("assign-report-modal", true);
@@ -395,6 +418,12 @@ async function handleAssignFormSubmit(event) {
       "success"
     );
 
+    // --- RESETEAR FILTROS AQUÍ ---
+    const filterForm = getById("filter-form");
+    if (filterForm) {
+      filterForm.reset(); // Esto devuelve los radios a "Todos" (value="")
+    }
+
     // CAMBIO: Recargar la lista de reportes para que el asignado desaparezca
     setTimeout(() => {
       toggleModal("assign-report-modal", false);
@@ -459,6 +488,14 @@ document.addEventListener("DOMContentLoaded", () => {
   if (exportPdfBtn) {
     exportPdfBtn.addEventListener("click", () => {
       exportPdf();
+    });
+  }
+
+  // ⭐ NUEVO: Listener permanente para cambios de tipo
+  const reportTypeSelect = getById("modal-report-type");
+  if (reportTypeSelect) {
+    reportTypeSelect.addEventListener("change", (e) => {
+      updateWorkersList(e.target.value);
     });
   }
 

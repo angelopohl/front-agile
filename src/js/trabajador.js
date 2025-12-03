@@ -246,6 +246,12 @@ async function handleCompletionFormSubmit(event) {
 
     showFeedback(feedbackId, "¡Tarea completada con éxito!", "success");
 
+    // --- RESETEAR FILTROS AQUÍ ---
+    const filterForm = getById("filter-form");
+    if (filterForm) {
+      filterForm.reset(); // Esto devuelve los radios a "Todos" (value="")
+    }
+
     setTimeout(() => {
       toggleModal("complete-task-modal", false);
       loadAssignedTasks();

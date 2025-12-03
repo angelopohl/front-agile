@@ -489,6 +489,12 @@ if (reportForm) {
       showFeedback(reportFeedbackId, "Reporte registrado con éxito", "success");
       reportForm.reset();
 
+      // --- RESETEAR FILTROS AQUÍ ---
+      const filterForm = getById("filter-form");
+      if (filterForm) {
+        filterForm.reset(); // Esto devuelve los radios a "Todos" (value="")
+      }
+
       // Cerrar modal después de 1.5 segundos
       const modal = document.getElementById("new-report-modal");
       setTimeout(() => {
